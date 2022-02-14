@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2022 Umut İnan Erdoğan <umutinanerdogan@pm.me>
+ * 
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
 #[macro_use]
 extern crate common;
 
@@ -94,7 +102,7 @@ impl Parser {
 
     fn block(&mut self) -> Result<Vec<Stmt>> {
         let mut statements = vec![];
-        
+
         while !self.check(TokenType::RightBrace) && !self.is_at_end() {
             statements.push(self.declaration()?);
         }
