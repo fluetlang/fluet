@@ -1,0 +1,32 @@
+// A simple implementation of Conway's Game of Life in Fluet
+
+const TURNS = 15;
+
+// A 2D array of cells. 1 means alive, 0 means dead.
+let grid = [
+  [0, 0, 0],
+  [1, 1, 1],
+  [0, 0, 0]
+];
+
+function print_grid(grid) {
+  for row in grid {
+    let line = "";
+    for column in row {
+      if grid[row][column] == 1 {
+        l += "X";
+      } else {
+        l += " ";
+      }
+    }
+
+    print(line);
+  }
+}
+
+for turn in 0..TURNS {
+  print("--- Turn " + (turn + 1));
+  print_grid(grid);
+  
+  // TODO
+}

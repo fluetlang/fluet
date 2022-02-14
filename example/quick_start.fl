@@ -1,0 +1,52 @@
+// This is an example program demonstrating features of the Fluet language
+
+// We have single-line comments
+/* And multiline comments with /* nesting */ support */
+
+// We have these std library functions for printing to stdout and stderr
+// " or ' can be used for string literals as long as they match
+print("print"); // print to stdout with a newline
+eprint('eprint'); // print to stderr with a newline
+
+// We have modules
+module example {
+  // We have functions
+  function example_function() {}
+
+  // We have classes
+  class ExampleClass {
+    num: number;
+
+    constructor() {
+      this.num = 42;
+    }
+
+    // We have static functions
+    static example_static_function() {}
+
+    // We have methods
+    example_method() {
+      println(this.num);
+    }
+  }
+}
+
+// You can import stuff with `use`
+use example::exampleFn;
+use core::log;
+
+// We have a built-in logging utility (configurable)
+log::debug('log::debug');
+log::info('log::info');
+log::warn('log::warn');
+log::err('log::err');
+
+// The standard library is divided into
+// `std`, all of the standard library
+//    e.g., `std::tcp`, `std::fs`, etc. have to be enabled with arguments first
+// `core`, parts of std that are enabled by default (but can be disabled)
+//    e.g., `core::log` is enabled by default, but isn't part of the prelude
+// `prelude`, parts of std that are imported by default
+//    e.g., `print`, `eprint`, etc. are in the prelude
+// 
+// the prelude can be replaced by a program-defined module

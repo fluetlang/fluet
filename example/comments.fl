@@ -1,0 +1,2 @@
+// We have single-line comments
+/* And multiline comments with /* nesting */ support */
