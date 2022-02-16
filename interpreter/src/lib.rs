@@ -38,10 +38,6 @@ impl Interpreter {
 
     pub fn execute(&mut self, statement: Stmt) -> Result<Value> {
         match statement {
-            Stmt::Block(statements) => self.execute_block(
-                statements,
-                Env::from_parent(self.env.clone())
-            ),
             Stmt::Expr(expr) => self.evaluate(expr),
             Stmt::Let(name, expr) => {
                 let value = self.evaluate(expr)?;
@@ -49,22 +45,6 @@ impl Interpreter {
                 Ok(value)
             },
         }
-    }
-
-    fn execute_block(&mut self, statements: Vec<Stmt>, env: Env) -> Result<Value> {
-        let previous = self.env.clone();
-        let mut value = Value::Null;
-        // fixme: blocks should evaluate to only the last value *without* a
-        //        semicolon, however this currently requires semicolons after
-        //        each statement, and evaluates to the last statement's value
-        self.env = env;
-
-        for statement in statements {
-            value = self.execute(statement)?;
-        }
-
-        self.env = previous;
-        Ok(value)
     }
 
     fn evaluate(&mut self, expr: Expr) -> Result<Value> {
@@ -75,6 +55,8 @@ impl Interpreter {
                 Ok(value)
             },
             Expr::Binary(lhs, op, rhs) => self.evaluate_binary(*lhs, op, *rhs),
+            Expr::Block(statements, expr)
+                => self.evaluate_block(statements, expr),
             Expr::Grouping(expr) => self.evaluate(*expr),
             Expr::Literal(literal) => Ok(self.evaluate_literal(literal)),
             Expr::Unary(op, expr) => self.evaluate_unary(op, *expr),
@@ -131,6 +113,24 @@ impl Interpreter {
                 op.column()
             ),
         }
+    }
+
+    fn evaluate_block(&mut self, statements: Vec<Stmt>, expr: Option<Box<Expr>>) -> Result<Value> {
+        let previous = self.env.clone();
+        let env = Env::from_parent(previous.clone());
+        self.env = env;
+
+        for statement in statements {
+            self.execute(statement)?;
+        }
+
+        let expr = match expr {
+            Some(expr) => self.evaluate(*expr)?,
+            None => Value::Null,
+        };
+
+        self.env = previous;
+        Ok(expr)
     }
 
     fn evaluate_literal(&self, literal: Literal) -> Value {

@@ -6,12 +6,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+use crate::stmt::Stmt;
 use crate::token::{Token, Literal};
 
 #[derive(Debug, Clone)]
 pub enum Expr {
     Assignment(Token, Box<Expr>),
     Binary(Box<Expr>, Token, Box<Expr>),
+    Block(Vec<Stmt>, Option<Box<Expr>>),
     Grouping(Box<Expr>),
     Literal(Literal),
     Unary(Token, Box<Expr>),

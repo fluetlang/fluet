@@ -81,9 +81,6 @@ impl Parser {
         if self.match_token(TokenType::Let) {
             return self.let_declaration();
         }
-        if self.match_token(TokenType::LeftBrace) {
-            return Ok(Stmt::Block(self.block()?));
-        }
 
         self.statement()
     }
@@ -98,17 +95,6 @@ impl Parser {
 
         self.consume(TokenType::Semicolon, "Expected ';' after variable declaration")?;
         Ok(Stmt::Let(name, initializer))
-    }
-
-    fn block(&mut self) -> Result<Vec<Stmt>> {
-        let mut statements = vec![];
-
-        while !self.check(TokenType::RightBrace) && !self.is_at_end() {
-            statements.push(self.declaration()?);
-        }
-
-        self.consume(TokenType::RightBrace, "Expected '}' after block")?;
-        Ok(statements)
     }
 
     fn statement(&mut self) -> Result<Stmt> {
@@ -243,6 +229,33 @@ impl Parser {
             return Ok(Expr::Grouping(Box::new(expr)));
         }
 
+        if self.match_token(TokenType::LeftBrace) {
+            let mut statements = vec![];
+            let mut expr = Expr::Literal(Literal::Null);
+
+            while !self.check(TokenType::RightBrace) && !self.is_at_end() {
+                let last = self.current;
+                match self.declaration() {
+                    Ok(statement) => {
+                        statements.push(statement);
+                    },
+                    Err(err) => {
+                        let current = self.current;
+                        self.set_current(last); // rewind to before error
+                        if let Ok(last_expr) = self.expression() {
+                            expr = last_expr;
+                        } else {
+                            self.set_current(current);
+                            return Err(err);
+                        }
+                    }
+                }
+            }
+
+            self.consume(TokenType::RightBrace, "Expected '}' after block")?;
+            return Ok(Expr::Block(statements, Some(Box::new(expr))));
+        }
+
         error!(
             ReportKind::SyntaxError,
             "Expected expression",
@@ -309,5 +322,9 @@ impl Parser {
 
     fn previous(&self) -> Token {
         self.tokens[self.current - 1].clone()
+    }
+
+    fn set_current(&mut self, current: usize) {
+        self.current = current;
     }
 }
