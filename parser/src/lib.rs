@@ -106,7 +106,7 @@ impl Parser {
     }
 
     fn assignment(&mut self) -> Result<Expr> {
-        let lhs = self.logic()?;
+        let lhs = self.conditional()?;
 
         if self.match_token(TokenType::Equal) {
             let equals = self.previous();
@@ -121,14 +121,29 @@ impl Parser {
                 ReportKind::SyntaxError,
                 None,
                 "Invalid left-hand side in assignment",
-                equals.filename(),
-                equals.line(),
-                equals.row(),
-                equals.column()
+                equals.location()
             ));
         }
 
         Ok(lhs)
+    }
+
+    fn conditional(&mut self) -> Result<Expr> {
+        if self.match_token(TokenType::If) {
+            let condition = self.expression()?;
+            self.consume(TokenType::Then, "Expected 'then' after 'if' condition.")?;
+
+            let then_branch = self.expression()?;
+            let else_branch = if self.match_token(TokenType::Else) {
+                Some(Box::new(self.expression()?))
+            } else {
+                None
+            };
+
+            return Ok(Expr::If(Box::new(condition), Box::new(then_branch), else_branch));
+        }
+
+        self.logic()
     }
 
     fn logic(&mut self) -> Result<Expr> {
@@ -206,27 +221,10 @@ impl Parser {
             return Ok(Expr::Unary(operator, Box::new(right)));
         }
 
-        self.primary()
+        self.block()
     }
 
-    fn primary(&mut self) -> Result<Expr> {
-        if self.match_token(TokenType::False) { return Ok(Expr::Literal(Literal::Bool(false))); }
-        if self.match_token(TokenType::True) { return Ok(Expr::Literal(Literal::Bool(true))); }
-        if self.match_token(TokenType::Null) { return Ok(Expr::Literal(Literal::Null)); }
-
-        if self.match_any_token(vec![TokenType::Number, TokenType::String]) {
-            // safe to unwrap because all number and string tokens have literal values
-            return Ok(Expr::Literal(self.previous().literal().unwrap().clone()));
-        }
-
-        if self.match_token(TokenType::Identifier) { return Ok(Expr::Variable(self.previous())); }
-
-        if self.match_token(TokenType::LeftParen) {
-            let expr = self.expression()?;
-            self.consume(TokenType::RightParen, "Expected ')' after expression")?;
-            return Ok(Expr::Grouping(Box::new(expr)));
-        }
-
+    fn block(&mut self) -> Result<Expr> {
         if self.match_token(TokenType::LeftBrace) {
             let mut statements = vec![];
             let mut expr = Expr::Literal(Literal::Null);

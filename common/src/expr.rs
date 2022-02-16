@@ -15,6 +15,7 @@ pub enum Expr {
     Binary(Box<Expr>, Token, Box<Expr>),
     Block(Vec<Stmt>, Option<Box<Expr>>),
     Grouping(Box<Expr>),
+    If(Box<Expr>, Box<Expr>, Option<Box<Expr>>),
     Literal(Literal),
     Unary(Token, Box<Expr>),
     Variable(Token),

@@ -59,6 +59,8 @@ impl Interpreter {
             Expr::Block(statements, expr)
                 => self.evaluate_block(statements, expr),
             Expr::Grouping(expr) => self.evaluate(*expr),
+            Expr::If(condition, then_branch, else_branch)
+                => self.evaluate_conditional(*condition, *then_branch, else_branch),
             Expr::Literal(literal) => Ok(self.evaluate_literal(literal)),
             Expr::Unary(op, expr) => self.evaluate_unary(op, *expr),
             Expr::Variable(name) => self.env.get(name).map(|value| value.clone()),
@@ -129,6 +131,24 @@ impl Interpreter {
 
         self.env = previous;
         Ok(expr)
+    }
+
+    fn evaluate_conditional(&mut self, condition: Expr, then_branch: Expr, else_branch: Option<Box<Expr>>) -> Result<Value> {
+        let condition = self.evaluate(condition)?;
+
+        // FIXME: implement reading expression locations somehow
+        if self.is_truthy(&condition, &Location {
+            filename: "".to_string(),
+            line: "".to_string(),
+            row: 0,
+            column: 0,
+        })? {
+            self.evaluate(then_branch)
+        } else if let Some(else_branch) = else_branch {
+            self.evaluate(*else_branch)
+        } else {
+            Ok(Value::Null)
+        }
     }
 
     fn evaluate_literal(&self, literal: Literal) -> Value {
