@@ -49,43 +49,46 @@ impl fmt::Display for ReportKind {
 // TODO: create a list of error ids and generate errors with ids instead
 #[macro_export]
 macro_rules! error {
-    ($error_kind:expr, $message:expr, $filename:expr, $source:expr, $row:expr) => {
+    ($error_kind:expr, $message:expr, $filename:expr, $source:expr, $row:expr, $column:expr) => {
         $crate::errors::Result::Err($crate::errors::report_error(
             $error_kind,
             None,
             $message,
             $filename,
             $source,
-            $row
+            $row,
+            $column
         ))
     };
-    ($error_kind:expr, $id:expr, $message:expr, $filename:expr, $source:expr, $row:expr) => {
+    ($error_kind:expr, $id:expr, $message:expr, $filename:expr, $source:expr, $row:expr, $column:expr) => {
         $crate::errors::Result::Err($crate::errors::report_error(
             $error_kind,
             Some($id),
             $message,
             $filename,
             $source,
-            $row
+            $row,
+            $column
         ))
     };
 }
 
 pub fn report_error(
-    error_kind: ReportKind,
+    report_kind: ReportKind,
     id: Option<&str>,
     message: &str,
     filename: &str,
     source: &str,
-    row: usize
+    row: usize,
+    column: usize,
 )-> FluetError {
-    let annotation_type = match error_kind {
+    let annotation_type = match report_kind {
         ReportKind::RuntimeError |
         ReportKind::SyntaxError |
         ReportKind::TypeError => AnnotationType::Error,
     };
     
-    report(annotation_type, error_kind, id, message, filename, source, row)
+    report(annotation_type, report_kind, id, message, filename, source, row, column)
 }
 
 pub fn report(
@@ -95,10 +98,11 @@ pub fn report(
     message: &str,
     filename: &str,
     source: &str,
-    row: usize
+    row: usize,
+    column: usize
 ) -> FluetError {
     let title = format!("{}: {}", error_kind, message);
-    let filename = format!("{}:{}", filename, row);
+    let filename = format!("{}:{}:{}", filename, row, column);
     let snippet = Snippet {
         title: Some(Annotation {
             label: Some(&title),

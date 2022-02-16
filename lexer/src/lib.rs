@@ -15,6 +15,7 @@ pub struct Lexer {
     start: usize,
     current: usize,
     row: usize,
+    column: usize,
     tokens: Vec<Token>,
 }
 
@@ -27,6 +28,7 @@ impl Lexer {
             start: 0,
             current: 0,
             row: 1,
+            column: 0,
             tokens: vec![],
         }
     }
@@ -43,6 +45,7 @@ impl Lexer {
             self.filename.clone(),
             self.source.clone(),
             self.row,
+            self.column,
             None
         ));
         &self.tokens
@@ -163,7 +166,7 @@ impl Lexer {
 
             // Ignore whitespace
             Some(' ') | Some('\r') | Some('\t') => (),
-            Some('\n') => self.row += 1,
+            Some('\n') => {self.row += 1; self.column = 0},
 
             Some('0'..='9') => self.number(),
             Some('a'..='z' | 'A'..='Z' | '_') => self.identifier(),
@@ -173,7 +176,8 @@ impl Lexer {
                 &format!("Unexpected character {} at line {}", c, self.row),
                 &self.filename,
                 "",
-                0
+                0,
+                self.column
             )),
             None => eprintln!("{}", report_error(
                 ReportKind::SyntaxError,
@@ -181,7 +185,8 @@ impl Lexer {
                 &format!("Unexpected character at line {}", self.row),
                 &self.filename,
                 "",
-                0
+                0,
+                self.column
             )),
         }
     }
@@ -268,6 +273,7 @@ impl Lexer {
     fn advance(&mut self) -> Option<char> {
         let current = self.source.chars().nth(self.current);
         self.current += 1;
+        self.column += 1;
         current
     }
 
@@ -281,6 +287,7 @@ impl Lexer {
         }
 
         self.current += 1;
+        self.column += 1;
         true
     }
 
@@ -306,6 +313,7 @@ impl Lexer {
                 self.filename.clone(),
                 self.lines[self.row - 1].to_string(),
                 self.row,
+                self.column,
                 literal
             )
         );

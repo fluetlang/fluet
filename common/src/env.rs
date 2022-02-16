@@ -45,7 +45,8 @@ impl Env {
                     &format!("{} is not defined", name),
                     name.filename(),
                     name.line(),
-                    name.row()
+                    name.row(),
+                    name.column()
                 )
             },
         }
@@ -72,7 +73,8 @@ impl Env {
             &format!("{} is not defined", name),
             name.filename(),
             name.line(),
-            name.row()
+            name.row(),
+            name.column()
         )
     }
 }

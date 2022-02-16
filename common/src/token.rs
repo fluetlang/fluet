@@ -23,17 +23,19 @@ pub struct Token {
     filename: String,
     line: String,
     row: usize,
+    column: usize,
     literal: Option<Literal>,
 }
 
 impl Token {
-    pub fn new(token_type: TokenType, lexeme: String, filename: String, line: String, row: usize, literal: Option<Literal>) -> Self {
+    pub fn new(token_type: TokenType, lexeme: String, filename: String, line: String, row: usize, column: usize, literal: Option<Literal>) -> Self {
         Self {
             token_type,
             lexeme,
             filename,
             line,
             row,
+            column,
             literal,
         }
     }
@@ -56,6 +58,10 @@ impl Token {
 
     pub fn row(&self) -> usize {
         self.row
+    }
+
+    pub fn column(&self) -> usize {
+        self.column
     }
 
     pub fn literal(&self) -> Option<&Literal> {

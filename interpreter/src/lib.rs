@@ -127,7 +127,8 @@ impl Interpreter {
                 &format!("invalid binary operation '{}'", token_type),
                 op.filename(),
                 op.line(),
-                op.row()
+                op.row(),
+                op.column()
             ),
         }
     }
@@ -150,14 +151,14 @@ impl Interpreter {
                 _ => error!(
                     ReportKind::TypeError,
                     "Unary minus operator can only be applied to numbers",
-                    op.filename(), op.line(), op.row()
+                    op.filename(), op.line(), op.row(), op.column()
                 )
             },
             TokenType::Bang => Ok(Value::Bool(!self.is_truthy(rhs))),
             _ => error!(
                 ReportKind::TypeError,
                 "Unary operator not implemented",
-                op.filename(), op.line(), op.row()
+                op.filename(), op.line(), op.row(), op.column()
             )
         }
     }

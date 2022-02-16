@@ -117,7 +117,7 @@ impl Parser {
 
     fn expression_statement(&mut self) -> Result<Stmt> {
         let expr = self.expression()?;
-        self.consume(TokenType::Semicolon, "Expect ';' after expression.")?;
+        self.consume(TokenType::Semicolon, "Expected ';' after expression.")?;
         Ok(Stmt::Expr(expr))
     }
 
@@ -139,7 +139,8 @@ impl Parser {
                 "Invalid left-hand side in assignment",
                 equals.filename(),
                 equals.line(),
-                equals.row()
+                equals.row(),
+                equals.column()
             ));
         }
 
@@ -238,7 +239,7 @@ impl Parser {
 
         if self.match_token(TokenType::LeftParen) {
             let expr = self.expression()?;
-            self.consume(TokenType::RightParen, "Expect ')' after expression")?;
+            self.consume(TokenType::RightParen, "Expected ')' after expression")?;
             return Ok(Expr::Grouping(Box::new(expr)));
         }
 
@@ -247,7 +248,8 @@ impl Parser {
             "Expected expression",
             &self.filename,
             self.peek().line(),
-            self.peek().row()
+            self.peek().row(),
+            self.peek().column()
         )
     }
 
@@ -280,7 +282,8 @@ impl Parser {
             &format!("{}", message),
             &self.filename,
             self.peek().line(),
-            self.peek().row()
+            self.peek().row(),
+            self.peek().column()
         )
     }
 
