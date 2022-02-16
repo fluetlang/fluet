@@ -70,9 +70,9 @@ impl Interpreter {
 
         match (lhs, op.token_type(), rhs) {
             (lhs, TokenType::LogicalAnd, rhs)
-                => Ok(Value::Bool(self.is_truthy(lhs) && self.is_truthy(rhs))),
+                => Ok(Value::Bool(self.is_truthy(&lhs, &op)? && self.is_truthy(&rhs, &op)?)),
             (lhs, TokenType::LogicalOr, rhs)
-                => Ok(Value::Bool(self.is_truthy(lhs) || self.is_truthy(rhs))),
+                => Ok(Value::Bool(self.is_truthy(&lhs, &op)? || self.is_truthy(&rhs, &op)?)),
 
             (lhs, TokenType::BangEqual, rhs)
                 => Ok(Value::Bool(!self.is_equal(lhs, rhs))),
@@ -154,7 +154,7 @@ impl Interpreter {
                     op.filename(), op.line(), op.row(), op.column()
                 )
             },
-            TokenType::Bang => Ok(Value::Bool(!self.is_truthy(rhs))),
+            TokenType::Bang => Ok(Value::Bool(!self.is_truthy(&rhs, &op)?)),
             _ => error!(
                 ReportKind::TypeError,
                 "Unary operator not implemented",
@@ -163,10 +163,16 @@ impl Interpreter {
         }
     }
 
-    fn is_truthy(&self, value: Value) -> bool {
+    // FIXME: accept a location value instead of a token
+    fn is_truthy(&self, value: &Value, token: &Token) -> Result<bool> {
         match value {
-            Value::Null | Value::Bool(false) => false,
-            _ => true
+            Value::Null | Value::Bool(false) => Ok(false),
+            Value::Bool(true) => Ok(true),
+            _ => error!(
+                ReportKind::TypeError,
+                "Expected a boolean or null",
+                token.filename(), token.line(), token.row(), token.column()
+            )
         }
     }
 
