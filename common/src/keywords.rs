@@ -32,6 +32,7 @@ lazy_static! {
         keywords.insert("or",       TokenType::LogicalOr);
         keywords.insert("return",   TokenType::Return);
         keywords.insert("super",    TokenType::Super);
+        keywords.insert("then",     TokenType::Then);
         keywords.insert("this",     TokenType::This);
         keywords.insert("true",     TokenType::True);
         keywords.insert("while",    TokenType::While);

@@ -95,8 +95,8 @@ pub enum TokenType {
 
     // Keywords
     BitwiseAnd, BitwiseOr, Class, Const, Else, Enum, False, For, Function, If,
-    Let, Loop, LogicalAnd, LogicalOr, Match, Module, Null, Return, Super, This,
-    True, While,
+    Let, Loop, LogicalAnd, LogicalOr, Match, Module, Null, Return, Super, Then,
+    This, True, While,
 
     EOF
 }
