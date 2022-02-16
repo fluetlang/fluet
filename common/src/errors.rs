@@ -13,6 +13,8 @@ use annotate_snippets::snippet::{Snippet, Annotation, AnnotationType, Slice};
 use annotate_snippets::display_list::{FormatOptions, DisplayList};
 use colored::*;
 
+use crate::location::Location;
+
 pub type Result<T> = std::result::Result<T, FluetError>;
 
 #[derive(Debug)]
@@ -49,26 +51,20 @@ impl fmt::Display for ReportKind {
 // TODO: create a list of error ids and generate errors with ids instead
 #[macro_export]
 macro_rules! error {
-    ($error_kind:expr, $message:expr, $filename:expr, $source:expr, $row:expr, $column:expr) => {
+    ($error_kind:expr, $message:expr, $location:expr) => {
         $crate::errors::Result::Err($crate::errors::report_error(
             $error_kind,
             None,
             $message,
-            $filename,
-            $source,
-            $row,
-            $column
+            $location,
         ))
     };
-    ($error_kind:expr, $id:expr, $message:expr, $filename:expr, $source:expr, $row:expr, $column:expr) => {
+    ($error_kind:expr, $id:expr, $message:expr, $location:expr) => {
         $crate::errors::Result::Err($crate::errors::report_error(
             $error_kind,
             Some($id),
             $message,
-            $filename,
-            $source,
-            $row,
-            $column
+            $location,
         ))
     };
 }
@@ -77,10 +73,7 @@ pub fn report_error(
     report_kind: ReportKind,
     id: Option<&str>,
     message: &str,
-    filename: &str,
-    source: &str,
-    row: usize,
-    column: usize,
+    location: &Location,
 )-> FluetError {
     let annotation_type = match report_kind {
         ReportKind::RuntimeError |
@@ -88,7 +81,7 @@ pub fn report_error(
         ReportKind::TypeError => AnnotationType::Error,
     };
     
-    report(annotation_type, report_kind, id, message, filename, source, row, column)
+    report(annotation_type, report_kind, id, message, location)
 }
 
 pub fn report(
@@ -96,13 +89,10 @@ pub fn report(
     error_kind: ReportKind,
     id: Option<&str>,
     message: &str,
-    filename: &str,
-    source: &str,
-    row: usize,
-    column: usize
+    location: &Location,
 ) -> FluetError {
     let title = format!("{}: {}", error_kind, message);
-    let filename = format!("{}:{}:{}", filename, row, column);
+    let filename = format!("{}:{}:{}", location.filename, location.row, location.column);
     let snippet = Snippet {
         title: Some(Annotation {
             label: Some(&title),
@@ -113,10 +103,10 @@ pub fn report(
         slices: {
             let mut slices = vec![];
 
-            if row != 0 {
+            if location.row != 0 {
                 slices.push(Slice {
-                    source,
-                    line_start: row,
+                    source: &location.line,
+                    line_start: location.row,
                     origin: Some(&filename),
                     fold: false,
                     annotations: vec![]

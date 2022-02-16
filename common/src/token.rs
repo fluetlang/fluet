@@ -8,6 +8,8 @@
 
 use std::fmt;
 
+use crate::location::Location;
+
 #[derive(Debug, Clone)]
 pub enum Literal {
     Number(f64),
@@ -20,10 +22,7 @@ pub enum Literal {
 pub struct Token {
     token_type: TokenType,
     lexeme: String,
-    filename: String,
-    line: String,
-    row: usize,
-    column: usize,
+    location: Location,
     literal: Option<Literal>,
 }
 
@@ -32,10 +31,12 @@ impl Token {
         Self {
             token_type,
             lexeme,
-            filename,
-            line,
-            row,
-            column,
+            location: Location {
+                filename,
+                line,
+                row,
+                column,
+            },
             literal,
         }
     }
@@ -48,20 +49,8 @@ impl Token {
         &self.lexeme
     }
 
-    pub fn filename(&self) -> &str {
-        &self.filename
-    }
-
-    pub fn line(&self) -> &str {
-        &self.line
-    }
-
-    pub fn row(&self) -> usize {
-        self.row
-    }
-
-    pub fn column(&self) -> usize {
-        self.column
+    pub fn location(&self) -> &Location {
+        &self.location
     }
 
     pub fn literal(&self) -> Option<&Literal> {

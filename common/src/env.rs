@@ -43,10 +43,7 @@ impl Env {
                 error!(
                     ReportKind::RuntimeError,
                     &format!("{} is not defined", name),
-                    name.filename(),
-                    name.line(),
-                    name.row(),
-                    name.column()
+                    name.location()
                 )
             },
         }
@@ -71,10 +68,7 @@ impl Env {
         error!(
             ReportKind::RuntimeError,
             &format!("{} is not defined", name),
-            name.filename(),
-            name.line(),
-            name.row(),
-            name.column()
+            name.location()
         )
     }
 }

@@ -79,7 +79,7 @@ fn run(code: String, filename: String, interpreter: &mut Interpreter) -> Result<
     let mut lexer = Lexer::new(code, filename.clone());
     let tokens = lexer.scan_tokens();
 
-    let mut parser = Parser::new(tokens.to_vec(), filename);
+    let mut parser = Parser::new(tokens.to_vec());
     let expression = match parser.parse() {
         Ok(expression) => expression,
         Err(err) => {

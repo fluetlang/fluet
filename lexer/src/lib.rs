@@ -6,7 +6,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-use common::{token::{Token, TokenType, Literal}, util, keywords::KEYWORDS, errors::{report_error, ReportKind}};
+use common::{token::{Token, TokenType, Literal}, util, keywords::KEYWORDS, errors::{report_error, ReportKind}, location::Location};
 
 pub struct Lexer {
     source: String,
@@ -174,19 +174,23 @@ impl Lexer {
                 ReportKind::SyntaxError,
                 None,
                 &format!("Unexpected character {} at line {}", c, self.row),
-                &self.filename,
-                "",
-                0,
-                self.column
+                &Location {
+                    filename: self.filename.clone(),
+                    row: 0,
+                    column: 0,
+                    line: "".to_string(),
+                }
             )),
             None => eprintln!("{}", report_error(
                 ReportKind::SyntaxError,
                 None,
                 &format!("Unexpected character at line {}", self.row),
-                &self.filename,
-                "",
-                0,
-                self.column
+                &Location {
+                    filename: self.filename.clone(),
+                    row: 0,
+                    column: 0,
+                    line: "".to_string(),
+                }
             )),
         }
     }

@@ -12,6 +12,7 @@ extern crate common;
 use common::env::Env;
 use common::expr::Expr;
 use common::errors::{ReportKind, Result};
+use common::location::Location;
 use common::stmt::Stmt;
 use common::token::{Token, TokenType, Literal};
 use common::value::Value;
@@ -70,9 +71,9 @@ impl Interpreter {
 
         match (lhs, op.token_type(), rhs) {
             (lhs, TokenType::LogicalAnd, rhs)
-                => Ok(Value::Bool(self.is_truthy(&lhs, &op)? && self.is_truthy(&rhs, &op)?)),
+                => Ok(Value::Bool(self.is_truthy(&lhs, op.location())? && self.is_truthy(&rhs, op.location())?)),
             (lhs, TokenType::LogicalOr, rhs)
-                => Ok(Value::Bool(self.is_truthy(&lhs, &op)? || self.is_truthy(&rhs, &op)?)),
+                => Ok(Value::Bool(self.is_truthy(&lhs, op.location())? || self.is_truthy(&rhs, op.location())?)),
 
             (lhs, TokenType::BangEqual, rhs)
                 => Ok(Value::Bool(!self.is_equal(lhs, rhs))),
@@ -107,10 +108,7 @@ impl Interpreter {
             (_, token_type, _) => error!(
                 ReportKind::TypeError,
                 &format!("invalid binary operation '{}'", token_type),
-                op.filename(),
-                op.line(),
-                op.row(),
-                op.column()
+                op.location()
             ),
         }
     }
@@ -151,27 +149,27 @@ impl Interpreter {
                 _ => error!(
                     ReportKind::TypeError,
                     "Unary minus operator can only be applied to numbers",
-                    op.filename(), op.line(), op.row(), op.column()
+                    op.location()
                 )
             },
-            TokenType::Bang => Ok(Value::Bool(!self.is_truthy(&rhs, &op)?)),
+            TokenType::Bang => Ok(Value::Bool(!self.is_truthy(&rhs, op.location())?)),
             _ => error!(
                 ReportKind::TypeError,
                 "Unary operator not implemented",
-                op.filename(), op.line(), op.row(), op.column()
+                op.location()
             )
         }
     }
 
     // FIXME: accept a location value instead of a token
-    fn is_truthy(&self, value: &Value, token: &Token) -> Result<bool> {
+    fn is_truthy(&self, value: &Value, location: &Location) -> Result<bool> {
         match value {
             Value::Null | Value::Bool(false) => Ok(false),
             Value::Bool(true) => Ok(true),
             _ => error!(
                 ReportKind::TypeError,
                 "Expected a boolean or null",
-                token.filename(), token.line(), token.row(), token.column()
+                location
             )
         }
     }

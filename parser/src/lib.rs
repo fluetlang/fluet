@@ -17,15 +17,13 @@ use common::token::{Token, TokenType, Literal};
 pub struct Parser {
     tokens: Vec<Token>,
     current: usize,
-    filename: String,
 }
 
 impl Parser {
-    pub fn new(tokens: Vec<Token>, filename: String) -> Self {
+    pub fn new(tokens: Vec<Token>) -> Self {
         Self {
             tokens,
             current: 0,
-            filename,
         }
     }
 
@@ -256,13 +254,31 @@ impl Parser {
             return Ok(Expr::Block(statements, Some(Box::new(expr))));
         }
 
+        self.primary()
+    }
+
+    fn primary(&mut self) -> Result<Expr> {
+        if self.match_token(TokenType::False) { return Ok(Expr::Literal(Literal::Bool(false))); }
+        if self.match_token(TokenType::True) { return Ok(Expr::Literal(Literal::Bool(true))); }
+        if self.match_token(TokenType::Null) { return Ok(Expr::Literal(Literal::Null)); }
+
+        if self.match_any_token(vec![TokenType::Number, TokenType::String]) {
+            // safe to unwrap because all number and string tokens have literal values
+            return Ok(Expr::Literal(self.previous().literal().unwrap().clone()));
+        }
+
+        if self.match_token(TokenType::Identifier) { return Ok(Expr::Variable(self.previous())); }
+
+        if self.match_token(TokenType::LeftParen) {
+            let expr = self.expression()?;
+            self.consume(TokenType::RightParen, "Expected ')' after expression")?;
+            return Ok(Expr::Grouping(Box::new(expr)));
+        }
+
         error!(
             ReportKind::SyntaxError,
             "Expected expression",
-            &self.filename,
-            self.peek().line(),
-            self.peek().row(),
-            self.peek().column()
+            self.peek().location()
         )
     }
 
@@ -293,10 +309,7 @@ impl Parser {
         error!(
             ReportKind::SyntaxError,
             &format!("{}", message),
-            &self.filename,
-            self.peek().line(),
-            self.peek().row(),
-            self.peek().column()
+            self.peek().location()
         )
     }
 
