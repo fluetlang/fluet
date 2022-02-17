@@ -151,8 +151,8 @@ impl Parser {
 
         if self.match_any_token(vec![TokenType::LogicalAnd, TokenType::LogicalOr]) {
             let operator = self.previous();
-            let right = self.equality()?;
-            expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
+            let right = self.conditional()?;
+            expr = Expr::Logical(Box::new(expr), operator, Box::new(right));
         }
 
         Ok(expr)

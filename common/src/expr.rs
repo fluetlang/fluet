@@ -17,6 +17,7 @@ pub enum Expr {
     Grouping(Box<Expr>),
     If(Box<Expr>, Box<Expr>, Option<Box<Expr>>),
     Literal(Literal),
+    Logical(Box<Expr>, Token, Box<Expr>),
     Unary(Token, Box<Expr>),
     Variable(Token),
 }

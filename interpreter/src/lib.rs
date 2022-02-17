@@ -62,6 +62,7 @@ impl Interpreter {
             Expr::If(condition, then_branch, else_branch)
                 => self.evaluate_conditional(*condition, *then_branch, else_branch),
             Expr::Literal(literal) => Ok(self.evaluate_literal(literal)),
+            Expr::Logical(lhs, op, rhs) => self.evaluate_logical(*lhs, op, *rhs),
             Expr::Unary(op, expr) => self.evaluate_unary(op, *expr),
             Expr::Variable(name) => self.env.get(name).map(|value| value.clone()),
         }
@@ -72,11 +73,6 @@ impl Interpreter {
         let rhs = self.evaluate(rhs)?;
 
         match (lhs, op.token_type(), rhs) {
-            (lhs, TokenType::LogicalAnd, rhs)
-                => Ok(Value::Bool(self.is_truthy(&lhs, op.location())? && self.is_truthy(&rhs, op.location())?)),
-            (lhs, TokenType::LogicalOr, rhs)
-                => Ok(Value::Bool(self.is_truthy(&lhs, op.location())? || self.is_truthy(&rhs, op.location())?)),
-
             (lhs, TokenType::BangEqual, rhs)
                 => Ok(Value::Bool(!self.is_equal(lhs, rhs))),
             (lhs, TokenType::EqualEqual, rhs)
@@ -157,6 +153,28 @@ impl Interpreter {
             Literal::String(str) => Value::String(str),
             Literal::Bool(bool) => Value::Bool(bool),
             Literal::Null => Value::Null
+        }
+    }
+
+    fn evaluate_logical(&mut self, lhs: Expr, op: Token, rhs: Expr) -> Result<Value> {
+        let lhs = self.evaluate(lhs)?;
+        match (lhs, op.token_type(), rhs) {
+            (lhs, TokenType::LogicalAnd, rhs)
+                => Ok(Value::Bool(self.is_truthy(&lhs, op.location())? && {
+                    let rhs = &self.evaluate(rhs)?;
+                    self.is_truthy(rhs, op.location())?
+                })),
+            (lhs, TokenType::LogicalOr, rhs)
+                => Ok(Value::Bool(self.is_truthy(&lhs, op.location())? || {
+                    let rhs = &self.evaluate(rhs)?;
+                    self.is_truthy(rhs, op.location())?
+                })),
+            
+            (_, token_type, _) => error!(
+                ReportKind::TypeError,
+                &format!("invalid logical operation '{}'", token_type),
+                op.location()
+            ),
         }
     }
 
