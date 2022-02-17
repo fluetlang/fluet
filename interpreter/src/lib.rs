@@ -133,7 +133,7 @@ impl Interpreter {
         let condition = self.evaluate(condition)?;
 
         // FIXME: implement reading expression locations somehow
-        if self.is_truthy(&condition, &Location {
+        if self.is_truthy_restrictive(&condition, &Location {
             filename: "".to_string(),
             line: "".to_string(),
             row: 0,
@@ -158,19 +158,23 @@ impl Interpreter {
 
     fn evaluate_logical(&mut self, lhs: Expr, op: Token, rhs: Expr) -> Result<Value> {
         let lhs = self.evaluate(lhs)?;
-        match (lhs, op.token_type(), rhs) {
-            (lhs, TokenType::LogicalAnd, rhs)
-                => Ok(Value::Bool(self.is_truthy(&lhs, op.location())? && {
-                    let rhs = &self.evaluate(rhs)?;
-                    self.is_truthy(rhs, op.location())?
-                })),
-            (lhs, TokenType::LogicalOr, rhs)
-                => Ok(Value::Bool(self.is_truthy(&lhs, op.location())? || {
-                    let rhs = &self.evaluate(rhs)?;
-                    self.is_truthy(rhs, op.location())?
-                })),
+        match op.token_type() {
+            TokenType::LogicalAnd => {
+                if self.is_truthy(&lhs) {
+                    self.evaluate(rhs)
+                } else {
+                    Ok(lhs)
+                }
+            },
+            TokenType::LogicalOr => {
+                if self.is_truthy(&lhs) {
+                    Ok(lhs)
+                } else {
+                    self.evaluate(rhs)
+                }
+            },
             
-            (_, token_type, _) => error!(
+            token_type => error!(
                 ReportKind::TypeError,
                 &format!("invalid logical operation '{}'", token_type),
                 op.location()
@@ -190,7 +194,7 @@ impl Interpreter {
                     op.location()
                 )
             },
-            TokenType::Bang => Ok(Value::Bool(!self.is_truthy(&rhs, op.location())?)),
+            TokenType::Bang => Ok(Value::Bool(!self.is_truthy(&rhs))),
             _ => error!(
                 ReportKind::TypeError,
                 "Unary operator not implemented",
@@ -199,10 +203,16 @@ impl Interpreter {
         }
     }
 
-    // FIXME: accept a location value instead of a token
-    fn is_truthy(&self, value: &Value, location: &Location) -> Result<bool> {
+    fn is_truthy(&self, value: &Value) -> bool {
         match value {
-            Value::Null | Value::Bool(false) => Ok(false),
+            Value::Bool(false) | Value::Null => false,
+            _ => true
+        }
+    }
+
+    fn is_truthy_restrictive(&self, value: &Value, location: &Location) -> Result<bool> {
+        match value {
+            Value::Bool(false) | Value::Null => Ok(false),
             Value::Bool(true) => Ok(true),
             _ => error!(
                 ReportKind::TypeError,
