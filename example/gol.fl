@@ -21,7 +21,7 @@ function print_grid(grid) {
   for row in grid {
     let line = "";
     for column in row {
-      if grid[row][column] == 1 {
+      if grid[row][column] == 1 then {
         l += "X";
       } else {
         l += " ";
