@@ -31,13 +31,13 @@ impl Interpreter {
     pub fn interpret(&mut self, statements: Vec<Stmt>) -> Result<Value> {
         let mut value = Value::Null;
         for statement in statements {
-            value = self.execute(statement)?;
+            value = self.execute(&statement)?;
         }
 
         Ok(value)
     }
 
-    pub fn execute(&mut self, statement: Stmt) -> Result<Value> {
+    pub fn execute(&mut self, statement: &Stmt) -> Result<Value> {
         match statement {
             Stmt::Expr(expr) => self.evaluate(expr),
             Stmt::Let(name, expr) => {
@@ -45,30 +45,49 @@ impl Interpreter {
                 self.env.define(name.lexeme().to_string(), value.clone());
                 Ok(value)
             },
+            Stmt::Loop(statements) => self.execute_loop(statements),
         }
     }
 
-    fn evaluate(&mut self, expr: Expr) -> Result<Value> {
+    fn execute_loop(&mut self, statements: &Vec<Stmt>) -> Result<Value> {
+        let previous = self.env.clone();
+
+        loop {
+            let env = Env::from_parent(previous.clone());
+            self.env = env;
+            
+            for statement in statements {
+                self.execute(statement)?;
+            }
+        }
+
+        self.env = previous;
+
+        Ok(Value::Null)
+    }
+
+    fn evaluate(&mut self, expr: &Expr) -> Result<Value> {
         match expr {
             Expr::Assignment(name, value) => {
-                let value = self.evaluate(*value)?;
+                let value = self.evaluate(value)?;
                 self.env.assign(name, &value)?;
                 Ok(value)
             },
-            Expr::Binary(lhs, op, rhs) => self.evaluate_binary(*lhs, op, *rhs),
+            Expr::Binary(lhs, op, rhs)
+                => self.evaluate_binary(lhs, op, rhs),
             Expr::Block(statements, expr)
                 => self.evaluate_block(statements, expr),
-            Expr::Grouping(expr) => self.evaluate(*expr),
+            Expr::Grouping(expr) => self.evaluate(expr),
             Expr::If(condition, then_branch, else_branch)
-                => self.evaluate_conditional(*condition, *then_branch, else_branch),
+                => self.evaluate_conditional(condition, then_branch, else_branch),
             Expr::Literal(literal) => Ok(self.evaluate_literal(literal)),
-            Expr::Logical(lhs, op, rhs) => self.evaluate_logical(*lhs, op, *rhs),
-            Expr::Unary(op, expr) => self.evaluate_unary(op, *expr),
+            Expr::Logical(lhs, op, rhs) => self.evaluate_logical(lhs, op, rhs),
+            Expr::Unary(op, expr) => self.evaluate_unary(op, expr),
             Expr::Variable(name) => self.env.get(name).map(|value| value.clone()),
         }
     }
 
-    fn evaluate_binary(&mut self, lhs: Expr, op: Token, rhs: Expr) -> Result<Value> {
+    fn evaluate_binary(&mut self, lhs: &Expr, op: &Token, rhs: &Expr) -> Result<Value> {
         let lhs = self.evaluate(lhs)?;
         let rhs = self.evaluate(rhs)?;
 
@@ -111,7 +130,7 @@ impl Interpreter {
         }
     }
 
-    fn evaluate_block(&mut self, statements: Vec<Stmt>, expr: Option<Box<Expr>>) -> Result<Value> {
+    fn evaluate_block(&mut self, statements: &Vec<Stmt>, expr: &Option<Box<Expr>>) -> Result<Value> {
         let previous = self.env.clone();
         let env = Env::from_parent(previous.clone());
         self.env = env;
@@ -121,7 +140,7 @@ impl Interpreter {
         }
 
         let expr = match expr {
-            Some(expr) => self.evaluate(*expr)?,
+            Some(expr) => self.evaluate(expr)?,
             None => Value::Null,
         };
 
@@ -129,7 +148,7 @@ impl Interpreter {
         Ok(expr)
     }
 
-    fn evaluate_conditional(&mut self, condition: Expr, then_branch: Expr, else_branch: Option<Box<Expr>>) -> Result<Value> {
+    fn evaluate_conditional(&mut self, condition: &Expr, then_branch: &Expr, else_branch: &Option<Box<Expr>>) -> Result<Value> {
         let condition = self.evaluate(condition)?;
 
         // FIXME: implement reading expression locations somehow
@@ -141,22 +160,22 @@ impl Interpreter {
         })? {
             self.evaluate(then_branch)
         } else if let Some(else_branch) = else_branch {
-            self.evaluate(*else_branch)
+            self.evaluate(else_branch)
         } else {
             Ok(Value::Null)
         }
     }
 
-    fn evaluate_literal(&self, literal: Literal) -> Value {
+    fn evaluate_literal(&self, literal: &Literal) -> Value {
         match literal {
-            Literal::Number(num) => Value::Number(num),
-            Literal::String(str) => Value::String(str),
-            Literal::Bool(bool) => Value::Bool(bool),
+            Literal::Number(num) => Value::Number(*num),
+            Literal::String(str) => Value::String(str.clone()),
+            Literal::Bool(bool) => Value::Bool(*bool),
             Literal::Null => Value::Null
         }
     }
 
-    fn evaluate_logical(&mut self, lhs: Expr, op: Token, rhs: Expr) -> Result<Value> {
+    fn evaluate_logical(&mut self, lhs: &Expr, op: &Token, rhs: &Expr) -> Result<Value> {
         let lhs = self.evaluate(lhs)?;
         match op.token_type() {
             TokenType::LogicalAnd => {
@@ -182,7 +201,7 @@ impl Interpreter {
         }
     }
 
-    fn evaluate_unary(&mut self, op: Token, expr: Expr) -> Result<Value> {
+    fn evaluate_unary(&mut self, op: &Token, expr: &Expr) -> Result<Value> {
         let rhs = self.evaluate(expr)?;
 
         match op.token_type() {

@@ -12,4 +12,5 @@ use crate::{expr::Expr, token::Token};
 pub enum Stmt {
     Expr(Expr),
     Let(Token, Expr),
+    Loop(Vec<Stmt>),
 }

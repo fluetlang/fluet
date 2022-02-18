@@ -32,7 +32,7 @@ impl Env {
         }
     }
 
-    pub fn get(&self, name: Token) -> Result<&Value> {
+    pub fn get(&self, name: &Token) -> Result<&Value> {
         match self.values.get(name.lexeme()) {
             Some(value) => Ok(value),
             None => {
@@ -53,7 +53,7 @@ impl Env {
         self.values.insert(name, value);
     }
 
-    pub fn assign(&mut self, name: Token, value: &Value) -> Result<()> {
+    pub fn assign(&mut self, name: &Token, value: &Value) -> Result<()> {
         let lexeme = name.lexeme();
         if self.values.contains_key(lexeme) {
             self.values.insert(lexeme.to_string(), value.clone());

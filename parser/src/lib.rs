@@ -96,6 +96,10 @@ impl Parser {
     }
 
     fn statement(&mut self) -> Result<Stmt> {
+        if self.match_token(TokenType::Loop) {
+            return self.loop_statement();
+        }
+
         self.expression_statement()
     }
 
@@ -103,6 +107,17 @@ impl Parser {
         let expr = self.expression()?;
         self.consume(TokenType::Semicolon, "Expected ';' after expression.")?;
         Ok(Stmt::Expr(expr))
+    }
+
+    fn loop_statement(&mut self) -> Result<Stmt> {
+        self.consume(TokenType::LeftBrace, "Expected '{' after 'loop'.")?;
+        let mut body = vec![];
+        while !self.check(TokenType::RightBrace) && !self.is_at_end() {
+            body.push(self.declaration()?);
+        }
+
+        self.consume(TokenType::RightBrace, "Expected '}' after loop body.")?;
+        Ok(Stmt::Loop(body))
     }
 
     fn assignment(&mut self) -> Result<Expr> {
