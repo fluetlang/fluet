@@ -78,7 +78,7 @@ impl fmt::Display for Token {
 pub enum TokenType {
     // Single-character tokens
     LeftParen, RightParen, LeftBrace, RightBrace,
-    Comma, Dot, Minus, Plus, Semicolon, Slash, Star,
+    Comma, Dot, Minus, Percent, Plus, Semicolon, Slash, Star,
 
     // One or two character tokens
     Bang, BangEqual,
@@ -108,6 +108,7 @@ impl fmt::Display for TokenType {
             TokenType::Comma => write!(f, ","),
             TokenType::Dot => write!(f, "."),
             TokenType::Minus => write!(f, "-"),
+            TokenType::Percent => write!(f, "%"),
             TokenType::Plus => write!(f, "+"),
             TokenType::Semicolon => write!(f, ";"),
             TokenType::Slash => write!(f, "/"),

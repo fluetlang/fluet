@@ -241,7 +241,7 @@ impl Parser {
     fn factor(&mut self) -> Result<Expr> {
         let mut expr = self.unary()?;
 
-        if self.match_any_token(vec![TokenType::Slash, TokenType::Star]) {
+        if self.match_any_token(vec![TokenType::Percent, TokenType::Slash, TokenType::Star]) {
             let operator = self.previous();
             let right = self.expression()?;
             expr = Expr::Binary(Box::new(expr), operator, Box::new(right));

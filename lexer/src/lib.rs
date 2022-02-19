@@ -70,6 +70,7 @@ impl Lexer {
             Some('}') => self.add_token(TokenType::RightBrace, None),
             Some(',') => self.add_token(TokenType::Comma, None),
             Some('-') => self.add_token(TokenType::Minus, None),
+            Some('%') => self.add_token(TokenType::Percent, None),
             Some('+') => self.add_token(TokenType::Plus, None),
             Some(';') => self.add_token(TokenType::Semicolon, None),
             Some('*') => self.add_token(TokenType::Star, None),
