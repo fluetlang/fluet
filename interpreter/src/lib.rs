@@ -130,6 +130,9 @@ impl Interpreter {
             (Value::Number(lhs), TokenType::Minus, Value::Number(rhs)) => {
                 Ok(Value::Number(lhs - rhs))
             }
+            (Value::Number(lhs), TokenType::Percent, Value::Number(rhs)) => {
+                Ok(Value::Number(lhs % rhs))
+            }
             (Value::Number(lhs), TokenType::Plus, Value::Number(rhs)) => {
                 Ok(Value::Number(lhs + rhs))
             }
