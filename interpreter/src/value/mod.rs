@@ -14,25 +14,49 @@ use common::{errors::{Result, ReportKind}, location::Location};
 
 #[derive(Debug, Clone)]
 pub enum Value {
+    Bool(bool),
+    NativeFn(fn(Vec<Value>) -> Result<Value>, usize),
+    Null,
     Number(f64),
     String(String),
-    Bool(bool),
-    Null,
 }
 
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            Value::Bool(bool) => write!(f, "{}", bool),
+            Value::NativeFn(_, _) => write!(f, "<native fn>"),
+            Value::Null => write!(f, "null"),
             Value::Number(number) => write!(f, "{}", number),
             Value::String(string) => write!(f, "'{}'", string),
-            Value::Bool(bool) => write!(f, "{}", bool),
-            Value::Null => write!(f, "null"),
         }
     }
 }
 
 impl Callable for Value {
     fn call(&mut self, args: Vec<Value>, paren_loc: &Location) -> Result<Value> {
-        error!(ReportKind::TypeError, &format!("{self} is not a function"), paren_loc)
+        match self {
+            Value::NativeFn(fn_ptr, arity) => {
+                if args.len() != *arity {
+                    return error!(
+                        ReportKind::RuntimeError,
+                        &format!(
+                            "Expected {arity} arguments but got {}.",
+                            args.len()
+                        ),
+                        paren_loc
+                    );
+                }
+
+                (fn_ptr)(args)
+            }
+            _ => error!(ReportKind::TypeError, &format!("{self} is not a function"), paren_loc)
+        }
+    }
+
+    fn arity(&self) -> usize {
+        match self {
+            _ => 0
+        }
     }
 }

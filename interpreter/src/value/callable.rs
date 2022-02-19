@@ -11,5 +11,6 @@ use common::{errors::Result, location::Location};
 use crate::value::Value;
 
 pub trait Callable {
+    fn arity(&self) -> usize;
     fn call(&mut self, args: Vec<Value>, paren_loc: &Location) -> Result<Value>;
 }

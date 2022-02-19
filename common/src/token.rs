@@ -91,7 +91,7 @@ pub enum TokenType {
     Identifier, String, Number,
 
     // Keywords
-    BitwiseAnd, BitwiseOr, Class, Const, Else, Enum, False, For, Function, If,
+    BitwiseAnd, BitwiseOr, Class, Const, Else, Enum, False, Fn, For, If,
     Let, Loop, LogicalAnd, LogicalOr, Match, Module, Null, Return, Super, Then,
     This, True, While,
 
@@ -129,8 +129,8 @@ impl fmt::Display for TokenType {
             TokenType::Else => write!(f, "else"),
             TokenType::Enum => write!(f, "enum"),
             TokenType::False => write!(f, "false"),
+            TokenType::Fn => write!(f, "fn"),
             TokenType::For => write!(f, "for"),
-            TokenType::Function => write!(f, "function"),
             TokenType::If => write!(f, "if"),
             TokenType::Let => write!(f, "let"),
             TokenType::Loop => write!(f, "loop"),

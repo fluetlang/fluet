@@ -28,7 +28,31 @@ pub struct Interpreter {
 
 impl Interpreter {
     pub fn new() -> Self {
-        Self { env: Env::new() }
+        Self {
+            env: Env::from_parent({
+                let mut globals = Env::new();
+
+                globals.define("print".to_string(), Value::NativeFn(|args| {
+                    match &args[0] {
+                        Value::String(s) => println!("{}", s),
+                        value => println!("{}", value),
+                    }
+
+                    Ok(Value::Null)
+                }, 1));
+
+                globals.define("eprint".to_string(), Value::NativeFn(|args| {
+                    match &args[0] {
+                        Value::String(s) => eprintln!("{}", s),
+                        value => eprintln!("{}", value),
+                    }
+
+                    Ok(Value::Null)
+                }, 1));
+
+                Box::new(globals)
+            })
+        }
     }
 
     pub fn interpret(&mut self, statements: Vec<Stmt>) -> Result<Value> {

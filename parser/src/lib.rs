@@ -53,8 +53,8 @@ impl Parser {
             // TODO: add more cases
             match self.peek().token_type() {
                 TokenType::Class
+                | TokenType::Fn
                 | TokenType::For
-                | TokenType::Function
                 | TokenType::If
                 | TokenType::Let
                 | TokenType::Return
