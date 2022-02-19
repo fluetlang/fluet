@@ -142,7 +142,7 @@ impl Parser {
 
         if self.match_token(TokenType::Equal) {
             let equals = self.previous();
-            let value = self.assignment()?;
+            let value = self.expression()?;
 
             if let Expr::Variable(name) = lhs {
                 return Ok(Expr::Assignment(name, Box::new(value)));
@@ -190,7 +190,7 @@ impl Parser {
 
         if self.match_any_token(vec![TokenType::LogicalAnd, TokenType::LogicalOr]) {
             let operator = self.previous();
-            let right = self.conditional()?;
+            let right = self.expression()?;
             expr = Expr::Logical(Box::new(expr), operator, Box::new(right));
         }
 
@@ -202,7 +202,7 @@ impl Parser {
 
         if self.match_any_token(vec![TokenType::BangEqual, TokenType::EqualEqual]) {
             let operator = self.previous();
-            let right = self.comparison()?;
+            let right = self.expression()?;
             expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
         }
 
@@ -219,7 +219,7 @@ impl Parser {
             TokenType::LessEqual,
         ]) {
             let operator = self.previous();
-            let right = self.term()?;
+            let right = self.expression()?;
             expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
         }
 
@@ -231,7 +231,7 @@ impl Parser {
 
         if self.match_any_token(vec![TokenType::Minus, TokenType::Plus]) {
             let operator = self.previous();
-            let right = self.factor()?;
+            let right = self.expression()?;
             expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
         }
 
@@ -243,7 +243,7 @@ impl Parser {
 
         if self.match_any_token(vec![TokenType::Slash, TokenType::Star]) {
             let operator = self.previous();
-            let right = self.unary()?;
+            let right = self.expression()?;
             expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
         }
 
@@ -253,7 +253,7 @@ impl Parser {
     fn unary(&mut self) -> Result<Expr> {
         if self.match_any_token(vec![TokenType::Bang, TokenType::Minus]) {
             let operator = self.previous();
-            let right = self.unary()?;
+            let right = self.expression()?;
             return Ok(Expr::Unary(operator, Box::new(right)));
         }
 
