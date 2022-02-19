@@ -6,7 +6,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+pub mod callable;
+
 use std::fmt;
+use callable::Callable;
 use common::{errors::{Result, ReportKind}, location::Location};
 
 #[derive(Debug, Clone)]
@@ -25,5 +28,11 @@ impl fmt::Display for Value {
             Value::Bool(bool) => write!(f, "{}", bool),
             Value::Null => write!(f, "null"),
         }
+    }
+}
+
+impl Callable for Value {
+    fn call(&mut self, args: Vec<Value>, paren_loc: &Location) -> Result<Value> {
+        error!(ReportKind::TypeError, &format!("{self} is not a function"), paren_loc)
     }
 }

@@ -14,6 +14,7 @@ pub enum Expr {
     Assignment(Token, Box<Expr>),
     Binary(Box<Expr>, Token, Box<Expr>),
     Block(Vec<Stmt>, Option<Box<Expr>>),
+    Call(Box<Expr>, Token, Vec<Expr>),
     Grouping(Box<Expr>),
     If(Box<Expr>, Box<Expr>, Option<Box<Expr>>),
     Literal(Literal),

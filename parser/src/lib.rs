@@ -288,7 +288,36 @@ impl Parser {
             return Ok(Expr::Block(statements, Some(Box::new(expr))));
         }
 
-        self.primary()
+        self.call()
+    }
+
+    fn call(&mut self) -> Result<Expr> {
+        let mut expr = self.primary()?;
+
+        loop {
+            if self.match_token(TokenType::LeftParen) {
+                expr = self.finish_call(expr)?;
+            } else {
+                break;
+            }
+        }
+
+        Ok(expr)
+    }
+
+    fn finish_call(&mut self, callee: Expr) -> Result<Expr> {
+        let mut args = vec![];
+
+        if !self.check(TokenType::RightParen) {
+            loop {
+                args.push(self.expression()?);
+                if !self.match_token(TokenType::Comma) { break; }
+            }
+        }
+
+        let paren = self.consume(TokenType::RightParen, "Expected ')' after arguments.")?;
+
+        Ok(Expr::Call(Box::new(callee), paren, args))
     }
 
     fn primary(&mut self) -> Result<Expr> {

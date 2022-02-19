@@ -20,6 +20,7 @@ use common::token::{Literal, Token, TokenType};
 
 use env::Env;
 use value::Value;
+use value::callable::Callable;
 
 pub struct Interpreter {
     env: Env,
@@ -101,6 +102,8 @@ impl Interpreter {
             }
             Expr::Binary(lhs, op, rhs) => self.evaluate_binary(lhs, op, rhs),
             Expr::Block(statements, expr) => self.evaluate_block(statements, expr),
+            Expr::Call(callee, paren, args)
+                => self.evaluate_call(callee, paren, args),
             Expr::Grouping(expr) => self.evaluate(expr),
             Expr::If(condition, then_branch, else_branch) => {
                 self.evaluate_conditional(condition, then_branch, else_branch)
@@ -180,6 +183,17 @@ impl Interpreter {
 
         self.env = *self.env.parent().unwrap().clone();
         Ok(expr)
+    }
+
+    fn evaluate_call(&mut self, callee: &Expr, paren: &Token, args: &Vec<Expr>) -> Result<Value> {
+        let mut callee = self.evaluate(callee)?;
+
+        let args = args
+            .iter()
+            .map(|expr| self.evaluate(expr))
+            .collect::<Result<Vec<Value>>>()?;
+
+        callee.call(args, paren.location())
     }
 
     fn evaluate_conditional(
