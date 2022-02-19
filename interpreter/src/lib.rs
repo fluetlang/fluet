@@ -9,13 +9,17 @@
 #[macro_use]
 extern crate common;
 
-use common::env::Env;
+pub mod value;
+pub mod env;
+
 use common::errors::{ReportKind, Result};
 use common::expr::Expr;
 use common::location::Location;
 use common::stmt::Stmt;
 use common::token::{Literal, Token, TokenType};
-use common::value::Value;
+
+use env::Env;
+use value::Value;
 
 pub struct Interpreter {
     env: Env,

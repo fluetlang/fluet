@@ -83,7 +83,6 @@ dependencies = [
  "anyhow",
  "clap",
  "colored",
- "common",
  "interpreter",
  "lexer",
  "parser",

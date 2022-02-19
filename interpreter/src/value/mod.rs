@@ -7,6 +7,7 @@
  */
 
 use std::fmt;
+use common::{errors::{Result, ReportKind}, location::Location};
 
 #[derive(Debug, Clone)]
 pub enum Value {

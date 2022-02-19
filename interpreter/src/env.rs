@@ -8,8 +8,10 @@
 
 use std::collections::HashMap;
 
-use crate::errors::{ReportKind, Result};
-use crate::{error, token::Token, value::Value};
+use common::errors::{ReportKind, Result};
+use common::{error, token::Token};
+
+use crate::value::Value;
 
 #[derive(Debug, Clone)]
 pub struct Env {

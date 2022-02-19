@@ -17,8 +17,8 @@ use std::{fs::File, path::Path};
 use anyhow::Result;
 use clap::App;
 use colored::*;
-use common::value::Value;
 use interpreter::Interpreter;
+use interpreter::value::Value;
 use lexer::Lexer;
 use parser::Parser;
 
