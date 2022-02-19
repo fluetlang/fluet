@@ -75,8 +75,6 @@ impl Interpreter {
                 column: 0,
             },
         )? {
-            condition_value = self.evaluate(condition)?;
-
             self.env = Env::from_parent(Box::new(self.env.clone()));
 
             for statement in body {
@@ -84,6 +82,7 @@ impl Interpreter {
             }
 
             self.env = *self.env.parent().unwrap().clone();
+            condition_value = self.evaluate(condition)?;
         }
 
         Ok(Value::Null)
