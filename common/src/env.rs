@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2022 Umut İnan Erdoğan <umutinanerdogan@pm.me>
- * 
+ *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -8,8 +8,8 @@
 
 use std::collections::HashMap;
 
-use crate::{value::Value, token::Token, error};
 use crate::errors::{ReportKind, Result};
+use crate::{error, token::Token, value::Value};
 
 #[derive(Debug, Clone)]
 pub struct Env {
@@ -25,9 +25,9 @@ impl Env {
         }
     }
 
-    pub fn from_parent(parent: Env) -> Self {
+    pub fn from_parent(parent: Box<Env>) -> Self {
         Self {
-            parent: Some(Box::new(parent)),
+            parent: Some(parent),
             values: HashMap::new(),
         }
     }
@@ -45,10 +45,10 @@ impl Env {
                     &format!("{} is not defined", name),
                     name.location()
                 )
-            },
+            }
         }
     }
-    
+
     pub fn define(&mut self, name: String, value: Value) {
         self.values.insert(name, value);
     }
@@ -70,5 +70,9 @@ impl Env {
             &format!("{} is not defined", name),
             name.location()
         )
+    }
+
+    pub fn parent(&self) -> Option<&Box<Env>> {
+        self.parent.as_ref()
     }
 }

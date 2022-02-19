@@ -1,12 +1,18 @@
 /*
  * Copyright (C) 2022 Umut İnan Erdoğan <umutinanerdogan@pm.me>
- * 
+ *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-use common::{token::{Token, TokenType, Literal}, util, keywords::KEYWORDS, errors::{report_error, ReportKind}, location::Location};
+use common::{
+    errors::{report_error, ReportKind},
+    keywords::KEYWORDS,
+    location::Location,
+    token::{Literal, Token, TokenType},
+    util,
+};
 
 pub struct Lexer {
     source: String,
@@ -46,7 +52,7 @@ impl Lexer {
             self.source.clone(),
             self.row,
             self.column,
-            None
+            None,
         ));
         &self.tokens
     }
@@ -77,7 +83,7 @@ impl Lexer {
                 };
 
                 self.add_token(token, None);
-            },
+            }
             Some('=') => {
                 let token = if self.match_char('=') {
                     TokenType::EqualEqual
@@ -86,7 +92,7 @@ impl Lexer {
                 };
 
                 self.add_token(token, None);
-            },
+            }
             Some('<') => {
                 let token = if self.match_char('=') {
                     TokenType::LessEqual
@@ -95,7 +101,7 @@ impl Lexer {
                 };
 
                 self.add_token(token, None);
-            },
+            }
             Some('>') => {
                 let token = if self.match_char('=') {
                     TokenType::GreaterEqual
@@ -104,7 +110,7 @@ impl Lexer {
                 };
 
                 self.add_token(token, None);
-            },
+            }
             Some(':') => {
                 let token = if self.match_char(':') {
                     TokenType::ColonColon
@@ -113,7 +119,7 @@ impl Lexer {
                 };
 
                 self.add_token(token, None);
-            },
+            }
             Some('&') => {
                 let token = if self.match_char('&') {
                     TokenType::LogicalAnd
@@ -122,7 +128,7 @@ impl Lexer {
                 };
 
                 self.add_token(token, None);
-            },
+            }
             Some('|') => {
                 let token = if self.match_char('|') {
                     TokenType::LogicalOr
@@ -131,7 +137,7 @@ impl Lexer {
                 };
 
                 self.add_token(token, None);
-            },
+            }
             Some('/') => {
                 if self.match_char('/') {
                     // A comment goes until the end of the line.
@@ -158,7 +164,7 @@ impl Lexer {
                 } else {
                     self.add_token(TokenType::Slash, None);
                 }
-            },
+            }
 
             Some('.') => self.dot(),
             Some('"') => self.string('"'),
@@ -166,32 +172,41 @@ impl Lexer {
 
             // Ignore whitespace
             Some(' ') | Some('\r') | Some('\t') => (),
-            Some('\n') => {self.row += 1; self.column = 0},
+            Some('\n') => {
+                self.row += 1;
+                self.column = 0
+            }
 
             Some('0'..='9') => self.number(),
             Some('a'..='z' | 'A'..='Z' | '_') => self.identifier(),
-            Some(c) => eprintln!("{}", report_error(
-                ReportKind::SyntaxError,
-                None,
-                &format!("Unexpected character {} at line {}", c, self.row),
-                &Location {
-                    filename: self.filename.clone(),
-                    row: 0,
-                    column: 0,
-                    line: "".to_string(),
-                }
-            )),
-            None => eprintln!("{}", report_error(
-                ReportKind::SyntaxError,
-                None,
-                &format!("Unexpected character at line {}", self.row),
-                &Location {
-                    filename: self.filename.clone(),
-                    row: 0,
-                    column: 0,
-                    line: "".to_string(),
-                }
-            )),
+            Some(c) => eprintln!(
+                "{}",
+                report_error(
+                    ReportKind::SyntaxError,
+                    None,
+                    &format!("Unexpected character {} at line {}", c, self.row),
+                    &Location {
+                        filename: self.filename.clone(),
+                        row: 0,
+                        column: 0,
+                        line: "".to_string(),
+                    }
+                )
+            ),
+            None => eprintln!(
+                "{}",
+                report_error(
+                    ReportKind::SyntaxError,
+                    None,
+                    &format!("Unexpected character at line {}", self.row),
+                    &Location {
+                        filename: self.filename.clone(),
+                        row: 0,
+                        column: 0,
+                        line: "".to_string(),
+                    }
+                )
+            ),
         }
     }
 
@@ -257,18 +272,19 @@ impl Lexer {
         }
 
         let text = &self.source[self.start..self.current];
-        let token_type = KEYWORDS.get(text)
+        let token_type = KEYWORDS
+            .get(text)
             .map_or(TokenType::Identifier, |&token_type| token_type);
-        
+
         let literal = match token_type {
             TokenType::True => Some(Literal::Bool(true)),
             TokenType::False => Some(Literal::Bool(false)),
             TokenType::Number => {
                 let number = text.parse().unwrap();
                 Some(Literal::Number(number))
-            },
+            }
             TokenType::Null => Some(Literal::Null),
-            _ => None
+            _ => None,
         };
 
         self.add_token(token_type, literal);
@@ -310,16 +326,14 @@ impl Lexer {
 
     fn add_token(&mut self, token_type: TokenType, literal: Option<Literal>) {
         let text = self.source[self.start..self.current].to_string();
-        self.tokens.push(
-            Token::new(
-                token_type,
-                text,
-                self.filename.clone(),
-                self.lines[self.row - 1].to_string(),
-                self.row,
-                self.column,
-                literal
-            )
-        );
+        self.tokens.push(Token::new(
+            token_type,
+            text,
+            self.filename.clone(),
+            self.lines[self.row - 1].to_string(),
+            self.row,
+            self.column,
+            literal,
+        ));
     }
 }

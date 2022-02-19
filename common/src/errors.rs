@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2022 Umut İnan Erdoğan <umutinanerdogan@pm.me>
- * 
+ *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -9,8 +9,8 @@
 use std::error::Error;
 use std::{fmt, vec};
 
-use annotate_snippets::snippet::{Snippet, Annotation, AnnotationType, Slice};
-use annotate_snippets::display_list::{FormatOptions, DisplayList};
+use annotate_snippets::display_list::{DisplayList, FormatOptions};
+use annotate_snippets::snippet::{Annotation, AnnotationType, Slice, Snippet};
 use colored::*;
 
 use crate::location::Location;
@@ -74,13 +74,13 @@ pub fn report_error(
     id: Option<&str>,
     message: &str,
     location: &Location,
-)-> FluetError {
+) -> FluetError {
     let annotation_type = match report_kind {
-        ReportKind::RuntimeError |
-        ReportKind::SyntaxError |
-        ReportKind::TypeError => AnnotationType::Error,
+        ReportKind::RuntimeError | ReportKind::SyntaxError | ReportKind::TypeError => {
+            AnnotationType::Error
+        }
     };
-    
+
     report(annotation_type, report_kind, id, message, location)
 }
 
@@ -97,7 +97,7 @@ pub fn report(
         title: Some(Annotation {
             label: Some(&title),
             annotation_type,
-            id
+            id,
         }),
         footer: vec![],
         slices: {
@@ -109,7 +109,7 @@ pub fn report(
                     line_start: location.row,
                     origin: Some(&filename),
                     fold: false,
-                    annotations: vec![]
+                    annotations: vec![],
                 })
             }
 
@@ -118,7 +118,7 @@ pub fn report(
         opt: FormatOptions {
             color: true,
             ..Default::default()
-        }
+        },
     };
 
     FluetError(DisplayList::from(snippet).to_string())

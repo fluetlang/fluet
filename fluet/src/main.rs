@@ -1,16 +1,18 @@
 /*
  * Copyright (C) 2022 Umut İnan Erdoğan <umutinanerdogan@pm.me>
- * 
+ *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#[macro_use] extern crate anyhow;
-#[macro_use] extern crate clap;
+#[macro_use]
+extern crate anyhow;
+#[macro_use]
+extern crate clap;
 
 use std::io::{Read, Write};
-use std::{path::Path, fs::File};
+use std::{fs::File, path::Path};
 
 use anyhow::Result;
 use clap::App;
@@ -26,7 +28,7 @@ fn main() {
         .author("TheOddGarlic")
         .arg(arg!([FILE] "File to be run"))
         .get_matches();
-    
+
     let mut interpreter = Interpreter::new();
     if let Some(file) = matches.value_of("FILE") {
         if let Err(err) = run_file(file, &mut interpreter) {
@@ -40,7 +42,8 @@ fn main() {
 }
 
 fn run_file<P>(path: P, interpreter: &mut Interpreter) -> Result<()>
-    where P: AsRef<Path>
+where
+    P: AsRef<Path>,
 {
     let path = path.as_ref();
     let mut file = File::open(path)?;
@@ -49,10 +52,12 @@ fn run_file<P>(path: P, interpreter: &mut Interpreter) -> Result<()>
 
     match run(
         contents,
-        path.to_str().unwrap_or(&"<unknown>".green().italic()).to_string(),
-        interpreter)
-    {
-        Ok(_) => {},
+        path.to_str()
+            .unwrap_or(&"<unknown>".green().italic())
+            .to_string(),
+        interpreter,
+    ) {
+        Ok(_) => {}
         Err(err) => eprintln!("{}", err),
     };
     Ok(())
@@ -65,8 +70,12 @@ fn run_prompt(interpreter: &mut Interpreter) -> Result<()> {
         print!("> ");
         std::io::stdout().flush()?;
         std::io::stdin().read_line(&mut contents)?;
-        
-        match run(contents.trim().to_string(), "<repl>".green().italic().to_string(), interpreter) {
+
+        match run(
+            contents.trim().to_string(),
+            "<repl>".green().italic().to_string(),
+            interpreter,
+        ) {
             Ok(value) => println!("{}", value),
             Err(err) => eprintln!("{}", err),
         }
@@ -80,15 +89,15 @@ fn run(code: String, filename: String, interpreter: &mut Interpreter) -> Result<
     let tokens = lexer.scan_tokens();
 
     let mut parser = Parser::new(tokens.to_vec());
-    let expression = match parser.parse() {
-        Ok(expression) => expression,
+    let statements = match parser.parse() {
+        Ok(statements) => statements,
         Err(err) => {
             bail!(err);
         }
     };
 
-    match interpreter.interpret(expression) {
+    match interpreter.interpret(statements) {
         Ok(value) => Ok(value),
-        Err(err) => bail!(err)
+        Err(err) => bail!(err),
     }
 }

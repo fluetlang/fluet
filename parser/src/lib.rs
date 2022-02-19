@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2022 Umut İnan Erdoğan <umutinanerdogan@pm.me>
- * 
+ *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -9,10 +9,10 @@
 #[macro_use]
 extern crate common;
 
+use common::errors::{report_error, FluetError, ReportKind, Result};
 use common::expr::Expr;
-use common::errors::{ReportKind, Result, FluetError, report_error};
 use common::stmt::Stmt;
-use common::token::{Token, TokenType, Literal};
+use common::token::{Literal, Token, TokenType};
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -21,10 +21,7 @@ pub struct Parser {
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
-        Self {
-            tokens,
-            current: 0,
-        }
+        Self { tokens, current: 0 }
     }
 
     pub fn parse(&mut self) -> Result<Vec<Stmt>> {
@@ -55,13 +52,13 @@ impl Parser {
 
             // TODO: add more cases
             match self.peek().token_type() {
-                TokenType::Class |
-                TokenType::For |
-                TokenType::Function |
-                TokenType::If |
-                TokenType::Let |
-                TokenType::Return |
-                TokenType::While => return Ok(()),
+                TokenType::Class
+                | TokenType::For
+                | TokenType::Function
+                | TokenType::If
+                | TokenType::Let
+                | TokenType::Return
+                | TokenType::While => return Ok(()),
                 _ => {}
             }
 
@@ -85,19 +82,25 @@ impl Parser {
 
     fn let_declaration(&mut self) -> Result<Stmt> {
         let name = self.consume(TokenType::Identifier, "Expected variable name")?;
-        
+
         let mut initializer = Expr::Literal(Literal::Null);
         if self.match_token(TokenType::Equal) {
             initializer = self.expression()?;
         }
 
-        self.consume(TokenType::Semicolon, "Expected ';' after variable declaration")?;
+        self.consume(
+            TokenType::Semicolon,
+            "Expected ';' after variable declaration",
+        )?;
         Ok(Stmt::Let(name, initializer))
     }
 
     fn statement(&mut self) -> Result<Stmt> {
         if self.match_token(TokenType::Loop) {
             return self.loop_statement();
+        }
+        if self.match_token(TokenType::While) {
+            return self.while_statement();
         }
 
         self.expression_statement()
@@ -111,6 +114,7 @@ impl Parser {
 
     fn loop_statement(&mut self) -> Result<Stmt> {
         self.consume(TokenType::LeftBrace, "Expected '{' after 'loop'.")?;
+
         let mut body = vec![];
         while !self.check(TokenType::RightBrace) && !self.is_at_end() {
             body.push(self.declaration()?);
@@ -118,6 +122,19 @@ impl Parser {
 
         self.consume(TokenType::RightBrace, "Expected '}' after loop body.")?;
         Ok(Stmt::Loop(body))
+    }
+
+    fn while_statement(&mut self) -> Result<Stmt> {
+        let condition = self.expression()?;
+        self.consume(TokenType::LeftBrace, "Expected '{' after 'while'.")?;
+
+        let mut body = vec![];
+        while !self.check(TokenType::RightBrace) && !self.is_at_end() {
+            body.push(self.declaration()?);
+        }
+
+        self.consume(TokenType::RightBrace, "Expected '}' after loop body.")?;
+        Ok(Stmt::While(condition, body))
     }
 
     fn assignment(&mut self) -> Result<Expr> {
@@ -132,12 +149,15 @@ impl Parser {
             }
 
             // Report error but don't return error
-            eprintln!("{}", report_error(
-                ReportKind::SyntaxError,
-                None,
-                "Invalid left-hand side in assignment",
-                equals.location()
-            ));
+            eprintln!(
+                "{}",
+                report_error(
+                    ReportKind::SyntaxError,
+                    None,
+                    "Invalid left-hand side in assignment",
+                    equals.location()
+                )
+            );
         }
 
         Ok(lhs)
@@ -155,7 +175,11 @@ impl Parser {
                 None
             };
 
-            return Ok(Expr::If(Box::new(condition), Box::new(then_branch), else_branch));
+            return Ok(Expr::If(
+                Box::new(condition),
+                Box::new(then_branch),
+                else_branch,
+            ));
         }
 
         self.logic()
@@ -188,15 +212,12 @@ impl Parser {
     fn comparison(&mut self) -> Result<Expr> {
         let mut expr = self.term()?;
 
-        if self.match_any_token(
-            vec![
-                    TokenType::Greater,
-                    TokenType::GreaterEqual,
-                    TokenType::Less,
-                    TokenType::LessEqual
-                ]
-            )
-        {
+        if self.match_any_token(vec![
+            TokenType::Greater,
+            TokenType::GreaterEqual,
+            TokenType::Less,
+            TokenType::LessEqual,
+        ]) {
             let operator = self.previous();
             let right = self.term()?;
             expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
@@ -249,7 +270,7 @@ impl Parser {
                 match self.declaration() {
                     Ok(statement) => {
                         statements.push(statement);
-                    },
+                    }
                     Err(err) => {
                         let current = self.current;
                         self.set_current(last); // rewind to before error
@@ -271,16 +292,24 @@ impl Parser {
     }
 
     fn primary(&mut self) -> Result<Expr> {
-        if self.match_token(TokenType::False) { return Ok(Expr::Literal(Literal::Bool(false))); }
-        if self.match_token(TokenType::True) { return Ok(Expr::Literal(Literal::Bool(true))); }
-        if self.match_token(TokenType::Null) { return Ok(Expr::Literal(Literal::Null)); }
+        if self.match_token(TokenType::False) {
+            return Ok(Expr::Literal(Literal::Bool(false)));
+        }
+        if self.match_token(TokenType::True) {
+            return Ok(Expr::Literal(Literal::Bool(true)));
+        }
+        if self.match_token(TokenType::Null) {
+            return Ok(Expr::Literal(Literal::Null));
+        }
 
         if self.match_any_token(vec![TokenType::Number, TokenType::String]) {
             // safe to unwrap because all number and string tokens have literal values
             return Ok(Expr::Literal(self.previous().literal().unwrap().clone()));
         }
 
-        if self.match_token(TokenType::Identifier) { return Ok(Expr::Variable(self.previous())); }
+        if self.match_token(TokenType::Identifier) {
+            return Ok(Expr::Variable(self.previous()));
+        }
 
         if self.match_token(TokenType::LeftParen) {
             let expr = self.expression()?;

@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2022 Umut İnan Erdoğan <umutinanerdogan@pm.me>
- * 
+ *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -27,7 +27,15 @@ pub struct Token {
 }
 
 impl Token {
-    pub fn new(token_type: TokenType, lexeme: String, filename: String, line: String, row: usize, column: usize, literal: Option<Literal>) -> Self {
+    pub fn new(
+        token_type: TokenType,
+        lexeme: String,
+        filename: String,
+        line: String,
+        row: usize,
+        column: usize,
+        literal: Option<Literal>,
+    ) -> Self {
         Self {
             token_type,
             lexeme,
@@ -135,7 +143,7 @@ impl fmt::Display for TokenType {
             TokenType::This => write!(f, "this"),
             TokenType::True => write!(f, "true"),
             TokenType::While => write!(f, "while"),
-            _ => write!(f, "{:?}", self)
+            _ => write!(f, "{:?}", self),
         }
     }
 }
