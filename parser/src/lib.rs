@@ -142,7 +142,7 @@ impl Parser {
 
         if self.match_token(TokenType::Equal) {
             let equals = self.previous();
-            let value = self.expression()?;
+            let value = self.assignment()?;
 
             if let Expr::Variable(name) = lhs {
                 return Ok(Expr::Assignment(name, Box::new(value)));
@@ -165,7 +165,7 @@ impl Parser {
 
     fn conditional(&mut self) -> Result<Expr> {
         if self.match_token(TokenType::If) {
-            let condition = self.expression()?;
+            let condition = self.conditional()?;
             self.consume(TokenType::Then, "Expected 'then' after 'if' condition.")?;
 
             let then_branch = self.expression()?;
@@ -188,9 +188,9 @@ impl Parser {
     fn logic(&mut self) -> Result<Expr> {
         let mut expr = self.equality()?;
 
-        if self.match_any_token(vec![TokenType::LogicalAnd, TokenType::LogicalOr]) {
+        while self.match_any_token(vec![TokenType::LogicalAnd, TokenType::LogicalOr]) {
             let operator = self.previous();
-            let right = self.expression()?;
+            let right = self.equality()?;
             expr = Expr::Logical(Box::new(expr), operator, Box::new(right));
         }
 
@@ -200,9 +200,9 @@ impl Parser {
     fn equality(&mut self) -> Result<Expr> {
         let mut expr = self.comparison()?;
 
-        if self.match_any_token(vec![TokenType::BangEqual, TokenType::EqualEqual]) {
+        while self.match_any_token(vec![TokenType::BangEqual, TokenType::EqualEqual]) {
             let operator = self.previous();
-            let right = self.expression()?;
+            let right = self.comparison()?;
             expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
         }
 
@@ -212,14 +212,14 @@ impl Parser {
     fn comparison(&mut self) -> Result<Expr> {
         let mut expr = self.term()?;
 
-        if self.match_any_token(vec![
+        while self.match_any_token(vec![
             TokenType::Greater,
             TokenType::GreaterEqual,
             TokenType::Less,
             TokenType::LessEqual,
         ]) {
             let operator = self.previous();
-            let right = self.expression()?;
+            let right = self.term()?;
             expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
         }
 
@@ -229,9 +229,9 @@ impl Parser {
     fn term(&mut self) -> Result<Expr> {
         let mut expr = self.factor()?;
 
-        if self.match_any_token(vec![TokenType::Minus, TokenType::Plus]) {
+        while self.match_any_token(vec![TokenType::Minus, TokenType::Plus]) {
             let operator = self.previous();
-            let right = self.expression()?;
+            let right = self.factor()?;
             expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
         }
 
@@ -241,9 +241,9 @@ impl Parser {
     fn factor(&mut self) -> Result<Expr> {
         let mut expr = self.unary()?;
 
-        if self.match_any_token(vec![TokenType::Percent, TokenType::Slash, TokenType::Star]) {
+        while self.match_any_token(vec![TokenType::Percent, TokenType::Slash, TokenType::Star]) {
             let operator = self.previous();
-            let right = self.expression()?;
+            let right = self.unary()?;
             expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
         }
 
@@ -253,7 +253,7 @@ impl Parser {
     fn unary(&mut self) -> Result<Expr> {
         if self.match_any_token(vec![TokenType::Bang, TokenType::Minus]) {
             let operator = self.previous();
-            let right = self.expression()?;
+            let right = self.unary()?;
             return Ok(Expr::Unary(operator, Box::new(right)));
         }
 
