@@ -15,7 +15,7 @@ use std::io::{Read, Write};
 use std::{fs::File, path::Path};
 
 use anyhow::Result;
-use clap::App;
+use clap::{App, Arg};
 use colored::*;
 use interpreter::Interpreter;
 use interpreter::value::Value;
@@ -26,22 +26,35 @@ fn main() {
     let matches = App::new("fluet")
         .version("0.1")
         .author("TheOddGarlic")
-        .arg(arg!([FILE] "File to be run"))
+        .args([
+            Arg::new("dump")
+                .long("dump")
+                .short('d')
+                .help("Dumps the AST before running"),
+            arg!([FILE] "File to be run")
+        ])
         .get_matches();
 
     let mut interpreter = Interpreter::new();
     if let Some(file) = matches.value_of("FILE") {
-        if let Err(err) = run_file(file, &mut interpreter) {
+        if let Err(err) = run_file(
+            file,
+            &mut interpreter,
+            matches.is_present("dump")
+        ) {
             eprintln!("{}", err);
         }
     } else {
-        if let Err(err) = run_prompt(&mut interpreter) {
+        if let Err(err) = run_prompt(
+            &mut interpreter,
+            matches.is_present("dump")
+        ) {
             eprintln!("{}", err);
         }
     }
 }
 
-fn run_file<P>(path: P, interpreter: &mut Interpreter) -> Result<()>
+fn run_file<P>(path: P, interpreter: &mut Interpreter, dump_ast: bool) -> Result<()>
 where
     P: AsRef<Path>,
 {
@@ -56,6 +69,7 @@ where
             .unwrap_or(&"<unknown>".green().italic())
             .to_string(),
         interpreter,
+        dump_ast
     ) {
         Ok(_) => {}
         Err(err) => eprintln!("{}", err),
@@ -63,7 +77,7 @@ where
     Ok(())
 }
 
-fn run_prompt(interpreter: &mut Interpreter) -> Result<()> {
+fn run_prompt(interpreter: &mut Interpreter, dump_ast: bool) -> Result<()> {
     let mut contents = String::new();
 
     loop {
@@ -75,6 +89,7 @@ fn run_prompt(interpreter: &mut Interpreter) -> Result<()> {
             contents.trim().to_string(),
             "<repl>".green().italic().to_string(),
             interpreter,
+            dump_ast
         ) {
             Ok(value) => println!("{}", value),
             Err(err) => eprintln!("{}", err),
@@ -84,7 +99,7 @@ fn run_prompt(interpreter: &mut Interpreter) -> Result<()> {
     }
 }
 
-fn run(code: String, filename: String, interpreter: &mut Interpreter) -> Result<Value> {
+fn run(code: String, filename: String, interpreter: &mut Interpreter, dump_ast: bool) -> Result<Value> {
     let mut lexer = Lexer::new(code, filename.clone());
     let tokens = lexer.scan_tokens();
 
@@ -95,6 +110,10 @@ fn run(code: String, filename: String, interpreter: &mut Interpreter) -> Result<
             bail!(err);
         }
     };
+
+    if dump_ast {
+        eprintln!("{statements:#?}");
+    }
 
     match interpreter.interpret(statements) {
         Ok(value) => Ok(value),
