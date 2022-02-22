@@ -13,6 +13,7 @@ use common::{
     token::{Literal, Token, TokenType},
     util,
 };
+use unicode_segmentation::UnicodeSegmentation;
 
 pub struct Lexer {
     source: String,
@@ -49,7 +50,7 @@ impl Lexer {
             TokenType::EOF,
             "".to_string(),
             self.filename.clone(),
-            self.source.clone(),
+            "".to_string(),
             self.row,
             self.column,
             None,
@@ -58,26 +59,26 @@ impl Lexer {
     }
 
     fn is_at_end(&self) -> bool {
-        self.current >= self.source.len()
+        self.current >= self.source.graphemes(true).count()
     }
 
     fn scan_token(&mut self) {
         match self.advance() {
             // Single-character tokens
-            Some('(') => self.add_token(TokenType::LeftParen, None),
-            Some(')') => self.add_token(TokenType::RightParen, None),
-            Some('{') => self.add_token(TokenType::LeftBrace, None),
-            Some('}') => self.add_token(TokenType::RightBrace, None),
-            Some(',') => self.add_token(TokenType::Comma, None),
-            Some('-') => self.add_token(TokenType::Minus, None),
-            Some('%') => self.add_token(TokenType::Percent, None),
-            Some('+') => self.add_token(TokenType::Plus, None),
-            Some(';') => self.add_token(TokenType::Semicolon, None),
-            Some('*') => self.add_token(TokenType::Star, None),
+            Some("(") => self.add_token(TokenType::LeftParen, None),
+            Some(")") => self.add_token(TokenType::RightParen, None),
+            Some("{") => self.add_token(TokenType::LeftBrace, None),
+            Some("}") => self.add_token(TokenType::RightBrace, None),
+            Some(",") => self.add_token(TokenType::Comma, None),
+            Some("-") => self.add_token(TokenType::Minus, None),
+            Some("%") => self.add_token(TokenType::Percent, None),
+            Some("+") => self.add_token(TokenType::Plus, None),
+            Some(";") => self.add_token(TokenType::Semicolon, None),
+            Some("*") => self.add_token(TokenType::Star, None),
 
             // One or two character tokens
-            Some('!') => {
-                let token = if self.match_char('=') {
+            Some("!") => {
+                let token = if self.match_char("=") {
                     TokenType::BangEqual
                 } else {
                     TokenType::Bang
@@ -85,8 +86,8 @@ impl Lexer {
 
                 self.add_token(token, None);
             }
-            Some('=') => {
-                let token = if self.match_char('=') {
+            Some("=") => {
+                let token = if self.match_char("=") {
                     TokenType::EqualEqual
                 } else {
                     TokenType::Equal
@@ -94,8 +95,8 @@ impl Lexer {
 
                 self.add_token(token, None);
             }
-            Some('<') => {
-                let token = if self.match_char('=') {
+            Some("<") => {
+                let token = if self.match_char("=") {
                     TokenType::LessEqual
                 } else {
                     TokenType::Less
@@ -103,8 +104,8 @@ impl Lexer {
 
                 self.add_token(token, None);
             }
-            Some('>') => {
-                let token = if self.match_char('=') {
+            Some(">") => {
+                let token = if self.match_char("=") {
                     TokenType::GreaterEqual
                 } else {
                     TokenType::Greater
@@ -112,8 +113,8 @@ impl Lexer {
 
                 self.add_token(token, None);
             }
-            Some(':') => {
-                let token = if self.match_char(':') {
+            Some(":") => {
+                let token = if self.match_char(":") {
                     TokenType::ColonColon
                 } else {
                     TokenType::Colon
@@ -121,8 +122,8 @@ impl Lexer {
 
                 self.add_token(token, None);
             }
-            Some('&') => {
-                let token = if self.match_char('&') {
+            Some("&") => {
+                let token = if self.match_char("&") {
                     TokenType::LogicalAnd
                 } else {
                     TokenType::BitwiseAnd
@@ -130,8 +131,8 @@ impl Lexer {
 
                 self.add_token(token, None);
             }
-            Some('|') => {
-                let token = if self.match_char('|') {
+            Some("|") => {
+                let token = if self.match_char("|") {
                     TokenType::LogicalOr
                 } else {
                     TokenType::BitwiseOr
@@ -139,25 +140,31 @@ impl Lexer {
 
                 self.add_token(token, None);
             }
-            Some('/') => {
-                if self.match_char('/') {
+            Some("/") => {
+                if self.match_char("/") {
                     // A comment goes until the end of the line.
-                    while self.peek() != '\n' && !self.is_at_end() {
+                    while self.peek() != "\n" && !self.is_at_end() {
                         self.advance();
                     }
-                } else if self.match_char('*') {
+                } else if self.match_char("*") {
                     let mut nesting_counter = 0;
                     loop {
-                        if self.peek() == '/' && self.peek_nth(2) == '*' {
+                        if self.peek() == "/" && self.peek_nth(2) == "*" {
                             self.advance();
                             self.advance();
                             nesting_counter += 1;
-                        } else if self.match_char('*') && self.match_char('/') {
+                        } else if self.peek() == "*" && self.peek_nth(2) == "/" {
+                            self.advance();
+                            self.advance();
                             if nesting_counter == 0 {
                                 break;
                             }
 
                             nesting_counter -= 1;
+                        } else if self.match_char("\n") {
+                            self.row += 1;
+                            self.column = 0;
+                            self.advance();
                         } else {
                             self.advance();
                         }
@@ -167,54 +174,44 @@ impl Lexer {
                 }
             }
 
-            Some('.') => self.dot(),
-            Some('"') => self.string('"'),
-            Some('\'') => self.string('\''),
+            Some(".") => self.dot(),
+            Some("\"") => self.string("\""),
+            Some("'") => self.string("'"),
 
             // Ignore whitespace
-            Some(' ') | Some('\r') | Some('\t') => (),
-            Some('\n') => {
+            Some(" ") | Some("\r") | Some("\t") => (),
+            Some("\n") => {
                 self.row += 1;
-                self.column = 0
+                self.column = 0;
             }
 
-            Some('0'..='9') => self.number(),
-            Some('a'..='z' | 'A'..='Z' | '_') => self.identifier(),
-            Some(c) => eprintln!(
+            Some(i) if util::is_digit(i) => self.number(),
+            Some(i) if util::is_alpha(i) => self.identifier(),
+            _ => eprintln!(
                 "{}",
                 report_error(
                     ReportKind::SyntaxError,
                     None,
-                    &format!("Unexpected character {} at line {}", c, self.row),
+                    &format!(
+                        "Unexpected character at {}:{}:{}",
+                        self.filename, self.row, self.column
+                    ),
                     &Location {
-                        filename: self.filename.clone(),
+                        filename: String::new(),
                         row: 0,
                         column: 0,
-                        line: "".to_string(),
-                    }
-                )
-            ),
-            None => eprintln!(
-                "{}",
-                report_error(
-                    ReportKind::SyntaxError,
-                    None,
-                    &format!("Unexpected character at line {}", self.row),
-                    &Location {
-                        filename: self.filename.clone(),
-                        row: 0,
-                        column: 0,
-                        line: "".to_string(),
+                        line: String::new(),
                     }
                 )
             ),
         }
     }
 
-    fn string(&mut self, quote: char) {
+    fn string(&mut self, quote: &str) {
         while self.peek() != quote && !self.is_at_end() {
-            if self.peek() == '\n' {
+            if self.peek() == "\n" {
                 self.row += 1;
+                self.column = 0;
             }
 
             self.advance();
@@ -229,7 +226,14 @@ impl Lexer {
         self.advance();
 
         // Trim the surrounding quotes
-        let value = self.source[self.start + 1..self.current - 1].to_string();
+        let mut value = String::new();
+
+        for (i, grapheme) in self.source.graphemes(true).enumerate() {
+            if i >= self.start + 1 && i < self.current - 1 {
+                value.push_str(grapheme);
+            }
+        }
+
         self.add_token(TokenType::String, Some(Literal::String(value)));
     }
 
@@ -239,8 +243,16 @@ impl Lexer {
                 self.advance();
             }
 
+            let mut text = String::new();
+
+            for (i, grapheme) in self.source.graphemes(true).enumerate() {
+                if i >= self.start && i < self.current {
+                    text.push_str(grapheme);
+                }
+            }
+
             // Should always be a valid f64
-            let number = self.source[self.start..self.current].parse().unwrap();
+            let number = text.parse().unwrap();
             self.add_token(TokenType::Number, Some(Literal::Number(number)));
         } else {
             self.add_token(TokenType::Dot, None);
@@ -253,7 +265,7 @@ impl Lexer {
         }
 
         // Look for the fractional part
-        if self.peek() == '.' && util::is_digit(self.peek_nth(2)) {
+        if self.peek() == "." && util::is_digit(self.peek_nth(2)) {
             // Consume the "."
             self.advance();
 
@@ -262,8 +274,16 @@ impl Lexer {
             }
         }
 
+        let mut value = String::new();
+
+        for (i, grapheme) in self.source.graphemes(true).enumerate() {
+            if i >= self.start + 1 && i < self.current - 1 {
+                value.push_str(grapheme);
+            }
+        }
+
         // Should always be a valid f64
-        let number = self.source[self.start..self.current].parse().unwrap();
+        let number = value.parse().unwrap();
         self.add_token(TokenType::Number, Some(Literal::Number(number)));
     }
 
@@ -272,9 +292,16 @@ impl Lexer {
             self.advance();
         }
 
-        let text = &self.source[self.start..self.current];
+        let mut text = String::new();
+
+        for (i, grapheme) in self.source.graphemes(true).enumerate() {
+            if i >= self.start && i < self.current {
+                text.push_str(grapheme);
+            }
+        }
+
         let token_type = KEYWORDS
-            .get(text)
+            .get(&text as &str)
             .map_or(TokenType::Identifier, |&token_type| token_type);
 
         let literal = match token_type {
@@ -291,19 +318,19 @@ impl Lexer {
         self.add_token(token_type, literal);
     }
 
-    fn advance(&mut self) -> Option<char> {
-        let current = self.source.chars().nth(self.current);
+    fn advance(&mut self) -> Option<&str> {
+        let current = self.source.graphemes(true).nth(self.current);
         self.current += 1;
         self.column += 1;
         current
     }
 
-    fn match_char(&mut self, expected: char) -> bool {
+    fn match_char(&mut self, expected: &str) -> bool {
         if self.is_at_end() {
             return false;
         }
 
-        if self.source.chars().nth(self.current) != Some(expected) {
+        if self.source.graphemes(true).nth(self.current) != Some(expected) {
             return false;
         }
 
@@ -312,21 +339,28 @@ impl Lexer {
         true
     }
 
-    fn peek(&mut self) -> char {
+    fn peek(&mut self) -> &str {
         self.peek_nth(1)
     }
 
-    fn peek_nth(&mut self, chars: usize) -> char {
-        if self.current + chars - 1 >= self.source.len() {
-            return '\0';
+    fn peek_nth(&mut self, chars: usize) -> &str {
+        if self.current + chars - 1 >= self.source.graphemes(true).count() {
+            return "\0";
         }
 
         // Should always be Some
-        self.source.chars().nth(self.current + chars - 1).unwrap()
+        self.source.graphemes(true).nth(self.current + chars - 1).unwrap()
     }
 
     fn add_token(&mut self, token_type: TokenType, literal: Option<Literal>) {
-        let text = self.source[self.start..self.current].to_string();
+        let mut text = String::new();
+
+        for (i, grapheme) in self.source.graphemes(true).enumerate() {
+            if i >= self.start && i < self.current {
+                text.push_str(grapheme);
+            }
+        }
+
         self.tokens.push(Token::new(
             token_type,
             text,
