@@ -277,7 +277,7 @@ impl Lexer {
         let mut value = String::new();
 
         for (i, grapheme) in self.source.graphemes(true).enumerate() {
-            if i >= self.start + 1 && i < self.current - 1 {
+            if i >= self.start && i < self.current {
                 value.push_str(grapheme);
             }
         }
