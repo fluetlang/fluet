@@ -42,6 +42,32 @@ impl Parser {
         Ok(statements)
     }
 
+    pub fn parse_repl(&mut self) -> Result<Expr> {
+        let mut statements = vec![];
+        let mut expr = Expr::Literal(Literal::Null);
+
+        while !self.is_at_end() {
+            let last = self.current;
+            match self.declaration() {
+                Ok(statement) => {
+                    statements.push(statement);
+                }
+                Err(err) => {
+                    let current = self.current;
+                    self.set_current(last); // rewind to before error
+                    if let Ok(last_expr) = self.expression() {
+                        expr = last_expr;
+                    } else {
+                        self.set_current(current);
+                        return Err(err);
+                    }
+                }
+            }
+        }
+
+        return Ok(Expr::Block(statements, Some(Box::new(expr))));
+    }
+
     fn synchronize(&mut self) -> Result<()> {
         self.advance();
 

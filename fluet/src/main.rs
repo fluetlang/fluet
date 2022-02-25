@@ -17,6 +17,7 @@ use std::{fs::File, path::Path};
 use anyhow::Result;
 use clap::{App, Arg};
 use colored::*;
+use common::expr::Expr;
 use interpreter::Interpreter;
 use interpreter::value::Value;
 use lexer::Lexer;
@@ -96,7 +97,7 @@ fn run_prompt(interpreter: &mut Interpreter,
         std::io::stdout().flush()?;
         std::io::stdin().read_line(&mut contents)?;
 
-        match run(
+        match eval(
             contents.trim().to_string(),
             "<repl>".green().italic().to_string(),
             interpreter,
@@ -115,7 +116,7 @@ fn run(code: String,
     filename: String,
     interpreter: &mut Interpreter,
     dump_ast: bool,
-    dump_tokens: bool) -> Result<Value>
+    dump_tokens: bool) -> Result<()>
 {
     let mut lexer = Lexer::new(code, filename.clone());
     let tokens = lexer.scan_tokens();
@@ -136,6 +137,35 @@ fn run(code: String,
     }
 
     match interpreter.interpret(statements) {
+        Ok(value) => Ok(value),
+        Err(err) => bail!(err),
+    }
+}
+
+fn eval(code: String,
+    filename: String,
+    interpreter: &mut Interpreter,
+    dump_ast: bool,
+    dump_tokens: bool) -> Result<Value>
+{
+    let mut lexer = Lexer::new(code, filename.clone());
+    let tokens = lexer.scan_tokens();
+    if dump_tokens {
+        eprintln!("{tokens:#?}");
+    }
+
+    let mut parser = Parser::new(tokens.to_vec());
+    let expr = parser.parse_repl()?;
+    if dump_ast {
+        eprintln!("{expr:#?}");
+    }
+
+    let (statements, expr) = match &expr {
+        Expr::Block(statements, expr) => (statements, expr),
+        _ => unreachable!()
+    };
+
+    match interpreter.evaluate_block(statements, expr, false) {
         Ok(value) => Ok(value),
         Err(err) => bail!(err),
     }

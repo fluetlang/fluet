@@ -55,29 +55,31 @@ impl Interpreter {
         }
     }
 
-    pub fn interpret(&mut self, statements: Vec<Stmt>) -> Result<Value> {
-        let mut value = Value::Null;
+    pub fn interpret(&mut self, statements: Vec<Stmt>) -> Result<()> {
         for statement in statements {
-            value = self.execute(&statement)?;
+            self.execute(&statement)?;
         }
 
-        Ok(value)
+        Ok(())
     }
 
-    pub fn execute(&mut self, statement: &Stmt) -> Result<Value> {
+    pub fn execute(&mut self, statement: &Stmt) -> Result<()> {
         match statement {
-            Stmt::Expr(expr) => self.evaluate(expr),
+            Stmt::Expr(expr) => {
+                self.evaluate(expr)?;
+                Ok(())
+            },
             Stmt::Let(name, expr) => {
                 let value = self.evaluate(expr)?;
-                self.env.define(name.lexeme().to_string(), value.clone());
-                Ok(value)
+                self.env.define(name.lexeme().to_string(), value);
+                Ok(())
             }
             Stmt::Loop(body) => self.execute_loop(body),
             Stmt::While(condition, body) => self.execute_while(condition, body),
         }
     }
 
-    fn execute_loop(&mut self, body: &Vec<Stmt>) -> Result<Value> {
+    fn execute_loop(&mut self, body: &Vec<Stmt>) -> Result<()> {
         loop {
             self.env = Env::from_parent(Box::new(self.env.clone()));
 
@@ -88,10 +90,10 @@ impl Interpreter {
             self.env = *self.env.parent().unwrap().clone();
         }
 
-        Ok(Value::Null)
+        Ok(())
     }
 
-    fn execute_while(&mut self, condition: &Expr, body: &Vec<Stmt>) -> Result<Value> {
+    fn execute_while(&mut self, condition: &Expr, body: &Vec<Stmt>) -> Result<()> {
         let mut condition_value = self.evaluate(condition)?;
 
         // FIXME: implement reading expression locations somehow
@@ -114,7 +116,7 @@ impl Interpreter {
             condition_value = self.evaluate(condition)?;
         }
 
-        Ok(Value::Null)
+        Ok(())
     }
 
     fn evaluate(&mut self, expr: &Expr) -> Result<Value> {
@@ -125,7 +127,8 @@ impl Interpreter {
                 Ok(value)
             }
             Expr::Binary(lhs, op, rhs) => self.evaluate_binary(lhs, op, rhs),
-            Expr::Block(statements, expr) => self.evaluate_block(statements, expr),
+            Expr::Block(statements, expr)
+                => self.evaluate_block(statements, expr, true),
             Expr::Call(callee, paren, args)
                 => self.evaluate_call(callee, paren, args),
             Expr::Grouping(expr) => self.evaluate(expr),
@@ -192,12 +195,15 @@ impl Interpreter {
         }
     }
 
-    fn evaluate_block(
+    pub fn evaluate_block(
         &mut self,
         statements: &Vec<Stmt>,
         expr: &Option<Box<Expr>>,
-    ) -> Result<Value> {
-        self.env = Env::from_parent(Box::new(self.env.clone()));
+        create_environment: bool) -> Result<Value>
+    {
+        if create_environment {
+            self.env = Env::from_parent(Box::new(self.env.clone()))
+        }
 
         for statement in statements {
             self.execute(statement)?;
@@ -208,7 +214,9 @@ impl Interpreter {
             None => Value::Null,
         };
 
-        self.env = *self.env.parent().unwrap().clone();
+        if create_environment {
+            self.env = *self.env.parent().unwrap().clone();
+        }
         Ok(expr)
     }
 
