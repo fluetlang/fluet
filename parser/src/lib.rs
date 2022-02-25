@@ -65,7 +65,7 @@ impl Parser {
             }
         }
 
-        return Ok(Expr::Block(statements, Some(Box::new(expr))));
+        return Ok(Expr::Block(statements, Box::new(expr)));
     }
 
     fn synchronize(&mut self) -> Result<()> {
@@ -196,15 +196,15 @@ impl Parser {
 
             let then_branch = self.expression()?;
             let else_branch = if self.match_token(TokenType::Else) {
-                Some(Box::new(self.expression()?))
+                self.expression()?
             } else {
-                None
+                Expr::Literal(Literal::Null)
             };
 
             return Ok(Expr::If(
                 Box::new(condition),
                 Box::new(then_branch),
-                else_branch,
+                Box::new(else_branch),
             ));
         }
 
@@ -311,7 +311,7 @@ impl Parser {
             }
 
             self.consume(TokenType::RightBrace, "Expected '}' after block")?;
-            return Ok(Expr::Block(statements, Some(Box::new(expr))));
+            return Ok(Expr::Block(statements, Box::new(expr)));
         }
 
         self.call()

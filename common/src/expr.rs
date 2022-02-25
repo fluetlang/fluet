@@ -13,10 +13,10 @@ use crate::token::{Literal, Token};
 pub enum Expr {
     Assignment(Token, Box<Expr>),
     Binary(Box<Expr>, Token, Box<Expr>),
-    Block(Vec<Stmt>, Option<Box<Expr>>),
+    Block(Vec<Stmt>, Box<Expr>),
     Call(Box<Expr>, Token, Vec<Expr>),
     Grouping(Box<Expr>),
-    If(Box<Expr>, Box<Expr>, Option<Box<Expr>>),
+    If(Box<Expr>, Box<Expr>, Box<Expr>),
     Literal(Literal),
     Logical(Box<Expr>, Token, Box<Expr>),
     Unary(Token, Box<Expr>),

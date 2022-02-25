@@ -198,7 +198,7 @@ impl Interpreter {
     pub fn evaluate_block(
         &mut self,
         statements: &Vec<Stmt>,
-        expr: &Option<Box<Expr>>,
+        expr: &Expr,
         create_environment: bool) -> Result<Value>
     {
         if create_environment {
@@ -209,10 +209,7 @@ impl Interpreter {
             self.execute(statement)?;
         }
 
-        let expr = match expr {
-            Some(expr) => self.evaluate(expr)?,
-            None => Value::Null,
-        };
+        let expr = self.evaluate(expr)?;
 
         if create_environment {
             self.env = *self.env.parent().unwrap().clone();
@@ -235,7 +232,7 @@ impl Interpreter {
         &mut self,
         condition: &Expr,
         then_branch: &Expr,
-        else_branch: &Option<Box<Expr>>,
+        else_branch: &Expr,
     ) -> Result<Value> {
         let condition = self.evaluate(condition)?;
 
@@ -250,10 +247,8 @@ impl Interpreter {
             },
         )? {
             self.evaluate(then_branch)
-        } else if let Some(else_branch) = else_branch {
-            self.evaluate(else_branch)
         } else {
-            Ok(Value::Null)
+            self.evaluate(else_branch)
         }
     }
 
