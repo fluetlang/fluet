@@ -27,10 +27,14 @@ fn main() {
         .version("0.1")
         .author("TheOddGarlic")
         .args([
-            Arg::new("dump")
-                .long("dump")
+            Arg::new("dump-ast")
+                .long("dump-ast")
                 .short('d')
                 .help("Dumps the AST before running"),
+            Arg::new("dump-tokens")
+                .long("dump-tokens")
+                .short('D')
+                .help("Dumps the tokens before running"),
             arg!([FILE] "File to be run")
         ])
         .get_matches();
@@ -40,21 +44,24 @@ fn main() {
         if let Err(err) = run_file(
             file,
             &mut interpreter,
-            matches.is_present("dump")
+            matches.is_present("dump-ast"),
+            matches.is_present("dump-tokens")
         ) {
             eprintln!("{}", err);
         }
-    } else {
-        if let Err(err) = run_prompt(
-            &mut interpreter,
-            matches.is_present("dump")
-        ) {
-            eprintln!("{}", err);
-        }
+    } else if let Err(err) = run_prompt(
+        &mut interpreter,
+        matches.is_present("dump-ast"),
+        matches.is_present("dump-tokens")
+    ) {
+        eprintln!("{}", err);
     }
 }
 
-fn run_file<P>(path: P, interpreter: &mut Interpreter, dump_ast: bool) -> Result<()>
+fn run_file<P>(path: P,
+    interpreter: &mut Interpreter,
+    dump_ast: bool,
+    dump_tokens: bool) -> Result<()>
 where
     P: AsRef<Path>,
 {
@@ -69,7 +76,8 @@ where
             .unwrap_or(&"<unknown>".green().italic())
             .to_string(),
         interpreter,
-        dump_ast
+        dump_ast,
+        dump_tokens
     ) {
         Ok(_) => {}
         Err(err) => eprintln!("{}", err),
@@ -77,7 +85,10 @@ where
     Ok(())
 }
 
-fn run_prompt(interpreter: &mut Interpreter, dump_ast: bool) -> Result<()> {
+fn run_prompt(interpreter: &mut Interpreter,
+    dump_ast: bool,
+    dump_tokens: bool) -> Result<()>
+{
     let mut contents = String::new();
 
     loop {
@@ -89,7 +100,8 @@ fn run_prompt(interpreter: &mut Interpreter, dump_ast: bool) -> Result<()> {
             contents.trim().to_string(),
             "<repl>".green().italic().to_string(),
             interpreter,
-            dump_ast
+            dump_ast,
+            dump_tokens
         ) {
             Ok(value) => println!("{}", value),
             Err(err) => eprintln!("{}", err),
@@ -99,9 +111,17 @@ fn run_prompt(interpreter: &mut Interpreter, dump_ast: bool) -> Result<()> {
     }
 }
 
-fn run(code: String, filename: String, interpreter: &mut Interpreter, dump_ast: bool) -> Result<Value> {
+fn run(code: String,
+    filename: String,
+    interpreter: &mut Interpreter,
+    dump_ast: bool,
+    dump_tokens: bool) -> Result<Value>
+{
     let mut lexer = Lexer::new(code, filename.clone());
     let tokens = lexer.scan_tokens();
+    if dump_tokens {
+        eprintln!("{tokens:#?}");
+    }
 
     let mut parser = Parser::new(tokens.to_vec());
     let statements = match parser.parse() {
