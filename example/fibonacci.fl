@@ -1,0 +1,20 @@
+/*
+ * Copyright (C) 2022 Umut İnan Erdoğan <umutinanerdogan@pm.me>
+ * 
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
+let x = 0;
+let y = 1;
+let i = 0;
+let temp;
+
+while i < 25 {
+  print(x);
+  temp = x;
+  x = y;
+  y = temp + y;
+  i = i + 1;
+}

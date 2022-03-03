@@ -1,0 +1,16 @@
+/*
+ * Copyright (C) 2022 Umut İnan Erdoğan <umutinanerdogan@pm.me>
+ * 
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
+let i = 0;
+while i < 100 {
+  i = i + 1;
+  if i % 15 == 0 then print("FizzBuzz")
+  else if i % 3 == 0 then print("Fizz")
+  else if i % 5 == 0 then print("Buzz")
+  else print(i);
+}
