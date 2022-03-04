@@ -11,6 +11,7 @@ use crate::{expr::Expr, token::Token};
 #[derive(Debug, Clone)]
 pub enum Stmt {
     Expr(Expr),
+    Fn(Token, Vec<Token>, Expr),
     Let(Token, Expr),
     Loop(Vec<Stmt>),
     While(Expr, Vec<Stmt>),

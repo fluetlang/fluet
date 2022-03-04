@@ -99,11 +99,33 @@ impl Parser {
     }
 
     fn declaration(&mut self) -> Result<Stmt> {
+        if self.match_token(TokenType::Fn) {
+            return self.function("function");
+        }
         if self.match_token(TokenType::Let) {
             return self.let_declaration();
         }
 
         self.statement()
+    }
+
+    fn function(&mut self, kind: &str) -> Result<Stmt> {
+        let name = self.consume(TokenType::Identifier, &format!("Expected {kind} name."))?;
+        self.consume(TokenType::LeftParen, &format!("Expected '(' after {kind} name."))?;
+
+        let mut args = vec![];
+        if !self.check(TokenType::RightParen) {
+            loop {
+                args.push(self.consume(TokenType::Identifier, "Expected argument name.")?);
+                if !self.match_token(TokenType::Comma) { break; }
+            }
+        }
+
+        self.consume(TokenType::RightParen, "Expected ')' after arguments.")?;
+        self.consume(TokenType::LeftBrace, &format!("Expected '{{' after {kind} body."))?;
+        let r#fn = Stmt::Fn(name, args, self.block_like()?);
+        self.consume(TokenType::RightBrace, &format!("Expected '}}' after {kind} body."))?;
+        Ok(r#fn)
     }
 
     fn let_declaration(&mut self) -> Result<Stmt> {

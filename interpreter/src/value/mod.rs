@@ -10,11 +10,16 @@ pub mod callable;
 
 use std::fmt;
 use callable::Callable;
-use common::{errors::{Result, ReportKind}, location::Location};
+use common::errors::{Result, ReportKind};
+use common::{location::Location, stmt::Stmt};
+
+use crate::Interpreter;
+use crate::env::Env;
 
 #[derive(Debug, Clone)]
 pub enum Value {
     Bool(bool),
+    Fn(Stmt),
     NativeFn(fn(Vec<Value>) -> Result<Value>, usize),
     Null,
     Number(f64),
@@ -25,6 +30,7 @@ impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Value::Bool(bool) => write!(f, "{}", bool),
+            Value::Fn(_) => write!(f, "<fn>"),
             Value::NativeFn(_, _) => write!(f, "<native fn>"),
             Value::Null => write!(f, "null"),
             Value::Number(number) => write!(f, "{}", number),
@@ -34,8 +40,30 @@ impl fmt::Display for Value {
 }
 
 impl Callable for Value {
-    fn call(&mut self, args: Vec<Value>, paren_loc: &Location) -> Result<Value> {
+    fn call(&mut self, interpreter: &mut Interpreter, args: Vec<Value>, paren_loc: &Location) -> Result<Value> {
         match self {
+            Value::Fn(Stmt::Fn(_, fn_args, body)) => {
+                let arity = fn_args.len();
+                if args.len() != arity {
+                    return error!(
+                        ReportKind::RuntimeError,
+                        &format!(
+                            "Expected {arity} arguments but got {}.",
+                            args.len()
+                        ),
+                        paren_loc
+                    );
+                }
+
+                let mut env = Env::from_parent(Box::new(interpreter.globals()));
+                for (i, arg) in fn_args.iter().enumerate() {
+                    if let Some(value) = args.get(i) {
+                        env.define(arg.lexeme().to_string(), value.clone());
+                    }
+                }
+
+                Ok(interpreter.evaluate(body)?)
+            },
             Value::NativeFn(fn_ptr, arity) => {
                 if args.len() != *arity {
                     return error!(

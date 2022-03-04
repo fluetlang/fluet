@@ -63,17 +63,32 @@ impl Interpreter {
         Ok(())
     }
 
+    // FIXME: This finds the global scope by looping over the parent of the
+    //        current scope. This is not the most efficient way to do this.
+    pub fn globals(&self) -> Env {
+        let mut globals = &self.env;
+        while let Some(parent) = globals.parent() {
+            globals = parent;
+        }
+
+        globals.clone()
+    }
+
     pub fn execute(&mut self, statement: &Stmt) -> Result<()> {
         match statement {
             Stmt::Expr(expr) => {
                 self.evaluate(expr)?;
                 Ok(())
             },
+            Stmt::Fn(name, _, _) => {
+                self.env.define(name.lexeme().to_string(), Value::Fn(statement.clone()));
+                Ok(())
+            },
             Stmt::Let(name, expr) => {
                 let value = self.evaluate(expr)?;
                 self.env.define(name.lexeme().to_string(), value);
                 Ok(())
-            }
+            },
             Stmt::Loop(body) => self.execute_loop(body),
             Stmt::While(condition, body) => self.execute_while(condition, body),
         }
@@ -225,7 +240,7 @@ impl Interpreter {
             .map(|expr| self.evaluate(expr))
             .collect::<Result<Vec<Value>>>()?;
 
-        callee.call(args, paren.location())
+        callee.call(self, args, paren.location())
     }
 
     fn evaluate_conditional(
