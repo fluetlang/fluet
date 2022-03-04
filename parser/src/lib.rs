@@ -42,11 +42,11 @@ impl Parser {
         Ok(statements)
     }
 
-    pub fn parse_repl(&mut self) -> Result<Expr> {
+    pub fn block_like(&mut self) -> Result<Expr> {
         let mut statements = vec![];
         let mut expr = Expr::Literal(Literal::Null);
 
-        while !self.is_at_end() {
+        while !self.check(TokenType::RightBrace) && !self.is_at_end() {
             let last = self.current;
             match self.declaration() {
                 Ok(statement) => {
@@ -107,7 +107,7 @@ impl Parser {
     }
 
     fn let_declaration(&mut self) -> Result<Stmt> {
-        let name = self.consume(TokenType::Identifier, "Expected variable name")?;
+        let name = self.consume(TokenType::Identifier, "Expected variable name.")?;
 
         let mut initializer = Expr::Literal(Literal::Null);
         if self.match_token(TokenType::Equal) {
@@ -116,7 +116,7 @@ impl Parser {
 
         self.consume(
             TokenType::Semicolon,
-            "Expected ';' after variable declaration",
+            "Expected ';' after variable declaration.",
         )?;
         Ok(Stmt::Let(name, initializer))
     }
@@ -288,30 +288,10 @@ impl Parser {
 
     fn block(&mut self) -> Result<Expr> {
         if self.match_token(TokenType::LeftBrace) {
-            let mut statements = vec![];
-            let mut expr = Expr::Literal(Literal::Null);
-
-            while !self.check(TokenType::RightBrace) && !self.is_at_end() {
-                let last = self.current;
-                match self.declaration() {
-                    Ok(statement) => {
-                        statements.push(statement);
-                    }
-                    Err(err) => {
-                        let current = self.current;
-                        self.set_current(last); // rewind to before error
-                        if let Ok(last_expr) = self.expression() {
-                            expr = last_expr;
-                        } else {
-                            self.set_current(current);
-                            return Err(err);
-                        }
-                    }
-                }
-            }
+            let block = self.block_like();
 
             self.consume(TokenType::RightBrace, "Expected '}' after block")?;
-            return Ok(Expr::Block(statements, Box::new(expr)));
+            return block;
         }
 
         self.call()

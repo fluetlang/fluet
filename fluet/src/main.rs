@@ -155,7 +155,7 @@ fn eval(code: String,
     }
 
     let mut parser = Parser::new(tokens.to_vec());
-    let expr = parser.parse_repl()?;
+    let expr = parser.block_like()?;
     if dump_ast {
         eprintln!("{expr:#?}");
     }
