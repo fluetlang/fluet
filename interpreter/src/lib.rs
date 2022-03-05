@@ -134,6 +134,14 @@ impl Interpreter {
         Ok(())
     }
 
+    fn evaluate_with_env(&mut self, expr: &Expr, env: Env) -> Result<Value> {
+        let old_env = self.env.clone();
+        self.env = env;
+        let value = self.evaluate(expr);
+        self.env = old_env;
+        value
+    }
+
     fn evaluate(&mut self, expr: &Expr) -> Result<Value> {
         match expr {
             Expr::Assignment(name, value) => {

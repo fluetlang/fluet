@@ -41,20 +41,20 @@ impl fmt::Display for Value {
 
 impl Callable for Value {
     fn call(&mut self, interpreter: &mut Interpreter, args: Vec<Value>, paren_loc: &Location) -> Result<Value> {
+        let arity = self.arity(paren_loc)?;
+        if args.len() != arity {
+            return error!(
+                ReportKind::RuntimeError,
+                &format!(
+                    "Expected {arity} arguments but got {}.",
+                    args.len()
+                ),
+                paren_loc
+            );
+        }
+
         match self {
             Value::Fn(Stmt::Fn(_, fn_args, body)) => {
-                let arity = fn_args.len();
-                if args.len() != arity {
-                    return error!(
-                        ReportKind::RuntimeError,
-                        &format!(
-                            "Expected {arity} arguments but got {}.",
-                            args.len()
-                        ),
-                        paren_loc
-                    );
-                }
-
                 let mut env = Env::from_parent(Box::new(interpreter.globals()));
                 for (i, arg) in fn_args.iter().enumerate() {
                     if let Some(value) = args.get(i) {
@@ -62,29 +62,18 @@ impl Callable for Value {
                     }
                 }
 
-                Ok(interpreter.evaluate(body)?)
+                Ok(interpreter.evaluate_with_env(body, env)?)
             },
-            Value::NativeFn(fn_ptr, arity) => {
-                if args.len() != *arity {
-                    return error!(
-                        ReportKind::RuntimeError,
-                        &format!(
-                            "Expected {arity} arguments but got {}.",
-                            args.len()
-                        ),
-                        paren_loc
-                    );
-                }
-
-                (fn_ptr)(args)
-            }
-            _ => error!(ReportKind::TypeError, &format!("{self} is not a function"), paren_loc)
+            Value::NativeFn(fn_ptr, _) => (fn_ptr)(args),
+            _ => unreachable!()
         }
     }
 
-    fn arity(&self) -> usize {
+    fn arity(&self, paren_loc: &Location) -> Result<usize> {
         match self {
-            _ => 0
+            Value::Fn(Stmt::Fn(_, fn_args, _)) => Ok(fn_args.len()),
+            Value::NativeFn(_, arity) => Ok(*arity),
+            _ => error!(ReportKind::TypeError, &format!("{self} is not a function"), paren_loc)
         }
     }
 }
