@@ -9,12 +9,8 @@
 pub mod callable;
 
 use std::fmt;
-use callable::Callable;
-use common::errors::{Result, ReportKind};
-use common::{location::Location, stmt::Stmt};
-
-use crate::Interpreter;
-use crate::env::Env;
+use common::errors::Result;
+use common::stmt::Stmt;
 
 #[derive(Debug, Clone)]
 pub enum Value {
@@ -35,45 +31,6 @@ impl fmt::Display for Value {
             Value::Null => write!(f, "null"),
             Value::Number(number) => write!(f, "{}", number),
             Value::String(string) => write!(f, "'{}'", string),
-        }
-    }
-}
-
-impl Callable for Value {
-    fn call(&mut self, interpreter: &mut Interpreter, args: Vec<Value>, paren_loc: &Location) -> Result<Value> {
-        let arity = self.arity(paren_loc)?;
-        if args.len() != arity {
-            return error!(
-                ReportKind::RuntimeError,
-                &format!(
-                    "Expected {arity} arguments but got {}.",
-                    args.len()
-                ),
-                paren_loc
-            );
-        }
-
-        match self {
-            Value::Fn(Stmt::Fn(_, fn_args, body)) => {
-                let mut env = Env::from_parent(Box::new(interpreter.globals()));
-                for (i, arg) in fn_args.iter().enumerate() {
-                    if let Some(value) = args.get(i) {
-                        env.define(arg.lexeme().to_string(), value.clone());
-                    }
-                }
-
-                Ok(interpreter.evaluate_with_env(body, env)?)
-            },
-            Value::NativeFn(fn_ptr, _) => (fn_ptr)(args),
-            _ => unreachable!()
-        }
-    }
-
-    fn arity(&self, paren_loc: &Location) -> Result<usize> {
-        match self {
-            Value::Fn(Stmt::Fn(_, fn_args, _)) => Ok(fn_args.len()),
-            Value::NativeFn(_, arity) => Ok(*arity),
-            _ => error!(ReportKind::TypeError, &format!("{self} is not a function"), paren_loc)
         }
     }
 }
