@@ -55,6 +55,14 @@ impl Interpreter {
         }
     }
 
+    pub fn with_env<R>(&mut self, env: Env, closure: impl FnOnce(&mut Interpreter) -> Result<R>) -> Result<R> {
+        let prev_env = self.env.clone();
+        self.env = env;
+        let value = closure(self);
+        self.env = prev_env;
+        value
+    }
+
     pub fn interpret(&mut self, statements: Vec<Stmt>) -> Result<()> {
         for statement in statements {
             self.execute(&statement)?;
@@ -80,7 +88,7 @@ impl Interpreter {
                 self.evaluate(expr)?;
                 Ok(())
             },
-            Stmt::Fn(name, _, _) => {
+            Stmt::Fn(name, _, _, _) => {
                 self.env.define(name.lexeme().to_string(), Value::Fn(statement.clone()));
                 Ok(())
             },
@@ -132,14 +140,6 @@ impl Interpreter {
         }
 
         Ok(())
-    }
-
-    fn evaluate_with_env(&mut self, expr: &Expr, env: Env) -> Result<Value> {
-        let old_env = self.env.clone();
-        self.env = env;
-        let value = self.evaluate(expr);
-        self.env = old_env;
-        value
     }
 
     fn evaluate(&mut self, expr: &Expr) -> Result<Value> {

@@ -42,7 +42,7 @@ impl Parser {
         Ok(statements)
     }
 
-    pub fn block_like(&mut self) -> Result<Expr> {
+    pub fn block_like(&mut self) -> Result<(Vec<Stmt>, Box<Expr>)> {
         let mut statements = vec![];
         let mut expr = Expr::Literal(Literal::Null);
 
@@ -65,7 +65,7 @@ impl Parser {
             }
         }
 
-        return Ok(Expr::Block(statements, Box::new(expr)));
+        return Ok((statements, Box::new(expr)));
     }
 
     fn synchronize(&mut self) -> Result<()> {
@@ -123,7 +123,10 @@ impl Parser {
 
         self.consume(TokenType::RightParen, "Expected ')' after arguments.")?;
         self.consume(TokenType::LeftBrace, &format!("Expected '{{' after {kind} body."))?;
-        let r#fn = Stmt::Fn(name, args, self.block_like()?);
+
+        let (statements, expr) = self.block_like()?;
+
+        let r#fn = Stmt::Fn(name, args, statements, *expr);
         self.consume(TokenType::RightBrace, &format!("Expected '}}' after {kind} body."))?;
         Ok(r#fn)
     }
@@ -310,10 +313,10 @@ impl Parser {
 
     fn block(&mut self) -> Result<Expr> {
         if self.match_token(TokenType::LeftBrace) {
-            let block = self.block_like();
+            let (statements, expr) = self.block_like()?;
 
             self.consume(TokenType::RightBrace, "Expected '}' after block")?;
-            return block;
+            return Ok(Expr::Block(statements, expr));
         }
 
         self.call()

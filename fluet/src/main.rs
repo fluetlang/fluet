@@ -17,7 +17,6 @@ use std::{fs::File, path::Path};
 use anyhow::Result;
 use clap::{App, Arg};
 use colored::*;
-use common::expr::Expr;
 use interpreter::Interpreter;
 use interpreter::value::Value;
 use lexer::Lexer;
@@ -155,17 +154,12 @@ fn eval(code: String,
     }
 
     let mut parser = Parser::new(tokens.to_vec());
-    let expr = parser.block_like()?;
+    let (statements, expr) = parser.block_like()?;
     if dump_ast {
         eprintln!("{expr:#?}");
     }
 
-    let (statements, expr) = match &expr {
-        Expr::Block(statements, expr) => (statements, expr),
-        _ => unreachable!()
-    };
-
-    match interpreter.evaluate_block(statements, expr, false) {
+    match interpreter.evaluate_block(&statements, &expr, false) {
         Ok(value) => Ok(value),
         Err(err) => bail!(err),
     }

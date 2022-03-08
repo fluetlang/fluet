@@ -31,7 +31,7 @@ impl Callable for Value {
         }
 
         match self {
-            Value::Fn(Stmt::Fn(_, fn_args, body)) => {
+            Value::Fn(Stmt::Fn(_, fn_args, body, return_expr)) => {
                 let mut env = Env::from_parent(Box::new(interpreter.globals()));
                 for (i, arg) in fn_args.iter().enumerate() {
                     if let Some(value) = args.get(i) {
@@ -39,7 +39,14 @@ impl Callable for Value {
                     }
                 }
 
-                Ok(interpreter.evaluate_with_env(body, env)?)
+                let mut return_value = Value::Null;
+                interpreter.with_env(env, |interpreter| {
+                    interpreter.interpret(body.clone())?;
+                    return_value = interpreter.evaluate(return_expr)?;
+                    Ok(())
+                })?;
+
+                Ok(return_value)
             },
             Value::NativeFn(fn_ptr, _) => (fn_ptr)(args),
             _ => unreachable!()
@@ -48,7 +55,7 @@ impl Callable for Value {
 
     fn arity(&self, paren_loc: &Location) -> Result<usize> {
         match self {
-            Value::Fn(Stmt::Fn(_, fn_args, _)) => Ok(fn_args.len()),
+            Value::Fn(Stmt::Fn(_, fn_args, _, _)) => Ok(fn_args.len()),
             Value::NativeFn(_, arity) => Ok(*arity),
             _ => error!(ReportKind::TypeError, &format!("{self} is not a function"), paren_loc)
         }
