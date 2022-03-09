@@ -48,7 +48,7 @@ impl Callable for Value {
 
                 Ok(return_value)
             },
-            Value::NativeFn(fn_ptr, _) => (fn_ptr)(args),
+            Value::NativeFn(fn_ptr, _) => (fn_ptr)(interpreter, args),
             _ => unreachable!()
         }
     }

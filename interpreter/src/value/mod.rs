@@ -12,11 +12,13 @@ use std::fmt;
 use common::errors::Result;
 use common::stmt::Stmt;
 
-#[derive(Debug, Clone)]
+use crate::Interpreter;
+
+#[derive(Clone)]
 pub enum Value {
     Bool(bool),
     Fn(Stmt),
-    NativeFn(fn(Vec<Value>) -> Result<Value>, usize),
+    NativeFn(fn(&mut Interpreter, Vec<Value>) -> Result<Value>, usize),
     Null,
     Number(f64),
     String(String),

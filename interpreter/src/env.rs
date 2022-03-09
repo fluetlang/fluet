@@ -13,7 +13,7 @@ use common::{error, token::Token};
 
 use crate::value::Value;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Env {
     parent: Option<Box<Env>>,
     values: HashMap<String, Value>,

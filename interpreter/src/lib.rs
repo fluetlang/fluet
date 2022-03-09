@@ -32,7 +32,7 @@ impl Interpreter {
             env: Env::from_parent({
                 let mut globals = Env::new();
 
-                globals.define("print".to_string(), Value::NativeFn(|args| {
+                globals.define("print".to_string(), Value::NativeFn(|_, args| {
                     match &args[0] {
                         Value::String(s) => println!("{}", s),
                         value => println!("{}", value),
@@ -41,7 +41,7 @@ impl Interpreter {
                     Ok(Value::Null)
                 }, 1));
 
-                globals.define("eprint".to_string(), Value::NativeFn(|args| {
+                globals.define("eprint".to_string(), Value::NativeFn(|_, args| {
                     match &args[0] {
                         Value::String(s) => eprintln!("{}", s),
                         value => eprintln!("{}", value),
