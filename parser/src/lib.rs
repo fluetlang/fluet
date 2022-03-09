@@ -148,13 +148,14 @@ impl Parser {
 
     fn statement(&mut self) -> Result<Stmt> {
         if self.match_token(TokenType::Loop) {
-            return self.loop_statement();
+            self.loop_statement()
+        } else if self.match_token(TokenType::Return) {
+            self.return_statement()
+        } else if self.match_token(TokenType::While) {
+            self.while_statement()
+        } else {
+            self.expression_statement()
         }
-        if self.match_token(TokenType::While) {
-            return self.while_statement();
-        }
-
-        self.expression_statement()
     }
 
     fn expression_statement(&mut self) -> Result<Stmt> {
@@ -173,6 +174,17 @@ impl Parser {
 
         self.consume(TokenType::RightBrace, "Expected '}' after loop body.")?;
         Ok(Stmt::Loop(body))
+    }
+
+    fn return_statement(&mut self) -> Result<Stmt> {
+        let value = if self.check(TokenType::Semicolon) {
+            Expr::Literal(Literal::Null)
+        } else {
+            self.expression()?
+        };
+
+        self.consume(TokenType::Semicolon, "Expected ';' after return value.")?;
+        Ok(Stmt::Return(value))
     }
 
     fn while_statement(&mut self) -> Result<Stmt> {

@@ -14,5 +14,6 @@ pub enum Stmt {
     Fn(Token, Vec<Token>, Vec<Stmt>, Expr),
     Let(Token, Expr),
     Loop(Vec<Stmt>),
+    Return(Expr),
     While(Expr, Vec<Stmt>),
 }

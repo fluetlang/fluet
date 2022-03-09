@@ -24,6 +24,7 @@ use value::callable::Callable;
 
 pub struct Interpreter {
     env: Env,
+    return_value: Option<Value>
 }
 
 impl Interpreter {
@@ -51,7 +52,8 @@ impl Interpreter {
                 }, 1));
 
                 Box::new(globals)
-            })
+            }),
+            return_value: None,
         }
     }
 
@@ -83,6 +85,10 @@ impl Interpreter {
     }
 
     pub fn execute(&mut self, statement: &Stmt) -> Result<()> {
+        if self.return_value.is_some() {
+            return Ok(());
+        }
+
         match statement {
             Stmt::Expr(expr) => {
                 self.evaluate(expr)?;
@@ -98,6 +104,10 @@ impl Interpreter {
                 Ok(())
             },
             Stmt::Loop(body) => self.execute_loop(body),
+            Stmt::Return(expr) => {
+                self.return_value = Some(self.evaluate(expr)?);
+                Ok(())
+            },
             Stmt::While(condition, body) => self.execute_while(condition, body),
         }
     }

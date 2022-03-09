@@ -39,9 +39,17 @@ impl Callable for Value {
                     }
                 }
 
+                let saved_return_value = interpreter.return_value.clone();
                 let mut return_value = Value::Null;
                 interpreter.with_env(env, |interpreter| {
                     interpreter.interpret(body.clone())?;
+
+                    if let Some(ret) = &interpreter.return_value {
+                        return_value = ret.clone();
+                        interpreter.return_value = saved_return_value;
+                        return Ok(());
+                    }
+
                     return_value = interpreter.evaluate(return_expr)?;
                     Ok(())
                 })?;
