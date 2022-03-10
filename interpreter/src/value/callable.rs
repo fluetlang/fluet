@@ -6,6 +6,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use common::{location::Location, stmt::Stmt};
 use common::errors::{Result, ReportKind};
 
@@ -32,10 +35,15 @@ impl Callable for Value {
 
         match self {
             Value::Fn(Stmt::Fn(_, fn_args, body, return_expr)) => {
-                let mut env = Env::from_parent(Box::new(interpreter.globals()));
-                for (i, arg) in fn_args.iter().enumerate() {
-                    if let Some(value) = args.get(i) {
-                        env.define(arg.lexeme().to_string(), value.clone());
+                let env = Rc::new(
+                    RefCell::new(Env::from_parent(interpreter.globals.clone()))
+                );
+
+                {
+                    let mut env_borrow = env.borrow_mut();
+
+                    for (i, arg) in fn_args.iter().enumerate() {
+                        env_borrow.define(arg.lexeme().to_string(), args[i].clone());
                     }
                 }
 

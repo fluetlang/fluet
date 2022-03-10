@@ -12,6 +12,9 @@ extern crate common;
 pub mod value;
 pub mod env;
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use common::errors::{ReportKind, Result};
 use common::expr::Expr;
 use common::location::Location;
@@ -23,41 +26,45 @@ use value::Value;
 use value::callable::Callable;
 
 pub struct Interpreter {
-    env: Env,
+    env: Rc<RefCell<Env>>,
+    globals: Rc<RefCell<Env>>,
     return_value: Option<Value>
 }
 
 impl Interpreter {
     pub fn new() -> Self {
+        let globals = {
+            let mut globals = Env::new();
+
+            globals.define("print".to_string(), Value::NativeFn(|_, args| {
+                match &args[0] {
+                    Value::String(s) => println!("{}", s),
+                    value => println!("{}", value),
+                }
+
+                Ok(Value::Null)
+            }, 1));
+
+            globals.define("eprint".to_string(), Value::NativeFn(|_, args| {
+                match &args[0] {
+                    Value::String(s) => eprintln!("{}", s),
+                    value => eprintln!("{}", value),
+                }
+
+                Ok(Value::Null)
+            }, 1));
+
+            Rc::new(RefCell::new(globals))
+        };
+
         Self {
-            env: Env::from_parent({
-                let mut globals = Env::new();
-
-                globals.define("print".to_string(), Value::NativeFn(|_, args| {
-                    match &args[0] {
-                        Value::String(s) => println!("{}", s),
-                        value => println!("{}", value),
-                    }
-
-                    Ok(Value::Null)
-                }, 1));
-
-                globals.define("eprint".to_string(), Value::NativeFn(|_, args| {
-                    match &args[0] {
-                        Value::String(s) => eprintln!("{}", s),
-                        value => eprintln!("{}", value),
-                    }
-
-                    Ok(Value::Null)
-                }, 1));
-
-                Box::new(globals)
-            }),
+            env: Rc::new(RefCell::new(Env::from_parent(globals.clone()))),
+            globals,
             return_value: None,
         }
     }
 
-    pub fn with_env<R>(&mut self, env: Env, closure: impl FnOnce(&mut Interpreter) -> Result<R>) -> Result<R> {
+    pub fn with_env<R>(&mut self, env: Rc<RefCell<Env>>, closure: impl FnOnce(&mut Interpreter) -> Result<R>) -> Result<R> {
         let prev_env = self.env.clone();
         self.env = env;
         let value = closure(self);
@@ -73,17 +80,6 @@ impl Interpreter {
         Ok(())
     }
 
-    // FIXME: This finds the global scope by looping over the parent of the
-    //        current scope. This is not the most efficient way to do this.
-    pub fn globals(&self) -> Env {
-        let mut globals = &self.env;
-        while let Some(parent) = globals.parent() {
-            globals = parent;
-        }
-
-        globals.clone()
-    }
-
     pub fn execute(&mut self, statement: &Stmt) -> Result<()> {
         if self.return_value.is_some() {
             return Ok(());
@@ -95,12 +91,15 @@ impl Interpreter {
                 Ok(())
             },
             Stmt::Fn(name, _, _, _) => {
-                self.env.define(name.lexeme().to_string(), Value::Fn(statement.clone()));
+                self.env.borrow_mut().define(
+                    name.lexeme().to_string(),
+                    Value::Fn(statement.clone())
+                );
                 Ok(())
             },
             Stmt::Let(name, expr) => {
                 let value = self.evaluate(expr)?;
-                self.env.define(name.lexeme().to_string(), value);
+                self.env.borrow_mut().define(name.lexeme().to_string(), value);
                 Ok(())
             },
             Stmt::Loop(body) => self.execute_loop(body),
@@ -114,13 +113,13 @@ impl Interpreter {
 
     fn execute_loop(&mut self, body: &Vec<Stmt>) -> Result<()> {
         loop {
-            self.env = Env::from_parent(Box::new(self.env.clone()));
+            self.env = Rc::new(RefCell::new(Env::from_parent(self.env.clone())));
 
             for statement in body {
                 self.execute(statement)?;
             }
 
-            self.env = *self.env.parent().unwrap().clone();
+            self.env = self.env.clone().borrow().parent().unwrap();
         }
 
         Ok(())
@@ -139,13 +138,13 @@ impl Interpreter {
                 column: 0,
             },
         )? {
-            self.env = Env::from_parent(Box::new(self.env.clone()));
+            self.env = Rc::new(RefCell::new(Env::from_parent(self.env.clone())));
 
             for statement in body {
                 self.execute(statement)?;
             }
 
-            self.env = *self.env.parent().unwrap().clone();
+            self.env = self.env.clone().borrow().parent().unwrap();
             condition_value = self.evaluate(condition)?;
         }
 
@@ -156,7 +155,7 @@ impl Interpreter {
         match expr {
             Expr::Assignment(name, value) => {
                 let value = self.evaluate(value)?;
-                self.env.assign(name, &value)?;
+                self.env.borrow_mut().assign(name, &value)?;
                 Ok(value)
             }
             Expr::Binary(lhs, op, rhs) => self.evaluate_binary(lhs, op, rhs),
@@ -171,7 +170,7 @@ impl Interpreter {
             Expr::Literal(literal) => Ok(self.evaluate_literal(literal)),
             Expr::Logical(lhs, op, rhs) => self.evaluate_logical(lhs, op, rhs),
             Expr::Unary(op, expr) => self.evaluate_unary(op, expr),
-            Expr::Variable(name) => self.env.get(name).map(|value| value.clone()),
+            Expr::Variable(name) => self.env.borrow().get(name).map(|value| value.clone()),
         }
     }
 
@@ -235,7 +234,7 @@ impl Interpreter {
         create_environment: bool) -> Result<Value>
     {
         if create_environment {
-            self.env = Env::from_parent(Box::new(self.env.clone()))
+            self.env = Rc::new(RefCell::new(Env::from_parent(self.env.clone())));
         }
 
         for statement in statements {
@@ -243,10 +242,10 @@ impl Interpreter {
         }
 
         let expr = self.evaluate(expr)?;
-
         if create_environment {
-            self.env = *self.env.parent().unwrap().clone();
+            self.env = self.env.clone().borrow().parent().unwrap();
         }
+
         Ok(expr)
     }
 

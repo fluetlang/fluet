@@ -6,7 +6,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 use common::errors::{ReportKind, Result};
 use common::{error, token::Token};
@@ -15,7 +17,7 @@ use crate::value::Value;
 
 #[derive(Clone)]
 pub struct Env {
-    parent: Option<Box<Env>>,
+    parent: Option<Rc<RefCell<Env>>>,
     values: HashMap<String, Value>,
 }
 
@@ -27,19 +29,19 @@ impl Env {
         }
     }
 
-    pub fn from_parent(parent: Box<Env>) -> Self {
+    pub fn from_parent(parent: Rc<RefCell<Env>>) -> Self {
         Self {
             parent: Some(parent),
             values: HashMap::new(),
         }
     }
 
-    pub fn get(&self, name: &Token) -> Result<&Value> {
+    pub fn get(&self, name: &Token) -> Result<Value> {
         match self.values.get(name.lexeme()) {
-            Some(value) => Ok(value),
+            Some(value) => Ok(value.clone()),
             None => {
                 if let Some(parent) = &self.parent {
-                    return Ok(parent.get(name)?);
+                    return Ok(parent.borrow().get(name)?);
                 }
 
                 error!(
@@ -62,8 +64,8 @@ impl Env {
             return Ok(());
         }
 
-        if let Some(parent) = &mut self.parent {
-            parent.assign(name, value)?;
+        if let Some(parent) = &self.parent {
+            parent.borrow_mut().assign(name, value)?;
             return Ok(());
         }
 
@@ -74,7 +76,7 @@ impl Env {
         )
     }
 
-    pub fn parent(&self) -> Option<&Box<Env>> {
-        self.parent.as_ref()
+    pub fn parent(&self) -> Option<Rc<RefCell<Env>>> {
+        self.parent.clone()
     }
 }
