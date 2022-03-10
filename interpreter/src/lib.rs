@@ -93,7 +93,7 @@ impl Interpreter {
             Stmt::Fn(name, _, _, _) => {
                 self.env.borrow_mut().define(
                     name.lexeme().to_string(),
-                    Value::Fn(statement.clone())
+                    Value::Fn(statement.clone(), self.env.clone())
                 );
                 Ok(())
             },
@@ -250,7 +250,7 @@ impl Interpreter {
     }
 
     fn evaluate_call(&mut self, callee: &Expr, paren: &Token, args: &Vec<Expr>) -> Result<Value> {
-        let mut callee = self.evaluate(callee)?;
+        let callee = self.evaluate(callee)?;
 
         let args = args
             .iter()

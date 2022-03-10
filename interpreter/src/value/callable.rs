@@ -12,15 +12,16 @@ use std::rc::Rc;
 use common::{location::Location, stmt::Stmt};
 use common::errors::{Result, ReportKind};
 
-use crate::{value::Value, Interpreter, env::Env};
+use crate::env::Env;
+use crate::{value::Value, Interpreter};
 
 pub trait Callable {
     fn arity(&self, paren_loc: &Location) -> Result<usize>;
-    fn call(&mut self, interpreter: &mut Interpreter, args: Vec<Value>, paren_loc: &Location) -> Result<Value>;
+    fn call(&self, interpreter: &mut Interpreter, args: Vec<Value>, paren_loc: &Location) -> Result<Value>;
 }
 
 impl Callable for Value {
-    fn call(&mut self, interpreter: &mut Interpreter, args: Vec<Value>, paren_loc: &Location) -> Result<Value> {
+    fn call(&self, interpreter: &mut Interpreter, args: Vec<Value>, paren_loc: &Location) -> Result<Value> {
         let arity = self.arity(paren_loc)?;
         if args.len() != arity {
             return error!(
@@ -34,10 +35,8 @@ impl Callable for Value {
         }
 
         match self {
-            Value::Fn(Stmt::Fn(_, fn_args, body, return_expr)) => {
-                let env = Rc::new(
-                    RefCell::new(Env::from_parent(interpreter.globals.clone()))
-                );
+            Value::Fn(Stmt::Fn(_, fn_args, body, return_expr), env) => {
+                let env = Rc::new(RefCell::new(Env::from_parent(env.clone())));
 
                 {
                     let mut env_borrow = env.borrow_mut();
@@ -71,7 +70,7 @@ impl Callable for Value {
 
     fn arity(&self, paren_loc: &Location) -> Result<usize> {
         match self {
-            Value::Fn(Stmt::Fn(_, fn_args, _, _)) => Ok(fn_args.len()),
+            Value::Fn(Stmt::Fn(_, fn_args, _, _), _) => Ok(fn_args.len()),
             Value::NativeFn(_, arity) => Ok(*arity),
             _ => error!(ReportKind::TypeError, &format!("{self} is not a function"), paren_loc)
         }
