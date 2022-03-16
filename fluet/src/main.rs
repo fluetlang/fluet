@@ -21,6 +21,7 @@ use interpreter::Interpreter;
 use interpreter::value::Value;
 use lexer::Lexer;
 use parser::Parser;
+use resolver::Resolver;
 
 fn main() {
     let matches = App::new("fluet")
@@ -135,6 +136,9 @@ fn run(code: String,
         eprintln!("{statements:#?}");
     }
 
+    let mut resolver = Resolver::new();
+    resolver.resolve(&statements, interpreter)?;
+
     match interpreter.interpret(statements) {
         Ok(value) => Ok(value),
         Err(err) => bail!(err),
@@ -158,6 +162,9 @@ fn eval(code: String,
     if dump_ast {
         eprintln!("{expr:#?}");
     }
+
+    let mut resolver = Resolver::new();
+    resolver.resolve(&statements, interpreter)?;
 
     match interpreter.evaluate_block(&statements, &expr, false) {
         Ok(value) => Ok(value),

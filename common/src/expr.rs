@@ -11,7 +11,7 @@ use crate::token::{Literal, Token};
 
 #[derive(Debug, Clone)]
 pub enum Expr {
-    Assignment(Token, Box<Expr>),
+    Assignment(usize, Token, Box<Expr>),
     Binary(Box<Expr>, Token, Box<Expr>),
     Block(Vec<Stmt>, Box<Expr>),
     Call(Box<Expr>, Token, Vec<Expr>),
@@ -20,5 +20,5 @@ pub enum Expr {
     Literal(Literal),
     Logical(Box<Expr>, Token, Box<Expr>),
     Unary(Token, Box<Expr>),
-    Variable(Token),
+    Variable(usize, Token),
 }

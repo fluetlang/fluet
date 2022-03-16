@@ -13,9 +13,10 @@ pub mod value;
 pub mod env;
 
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
 
-use common::errors::{ReportKind, Result};
+use common::errors::{ReportKind, Result, report_error};
 use common::expr::Expr;
 use common::location::Location;
 use common::stmt::Stmt;
@@ -27,39 +28,47 @@ use value::callable::Callable;
 
 pub struct Interpreter {
     env: Rc<RefCell<Env>>,
-    globals: Rc<RefCell<Env>>,
-    return_value: Option<Value>
+    globals: Env,
+    locals: HashMap<usize, usize>,
+    return_value: Option<Value>,
 }
 
 impl Interpreter {
     pub fn new() -> Self {
-        let globals = {
-            let mut globals = Env::new();
-
-            globals.define("print".to_string(), Value::NativeFn(|_, args| {
-                match &args[0] {
-                    Value::String(s) => println!("{}", s),
-                    value => println!("{}", value),
-                }
-
-                Ok(Value::Null)
-            }, 1));
-
-            globals.define("eprint".to_string(), Value::NativeFn(|_, args| {
-                match &args[0] {
-                    Value::String(s) => eprintln!("{}", s),
-                    value => eprintln!("{}", value),
-                }
-
-                Ok(Value::Null)
-            }, 1));
-
-            Rc::new(RefCell::new(globals))
-        };
-
         Self {
-            env: Rc::new(RefCell::new(Env::from_parent(globals.clone()))),
-            globals,
+            env: Rc::new(RefCell::new(Env::new())),
+            globals: {
+                let mut globals = Env::new();
+    
+                globals.define("print".to_string(), Value::NativeFn(|_, args| {
+                    match &args[0] {
+                        Value::String(s) => println!("{}", s),
+                        value => println!("{}", value),
+                    }
+    
+                    Ok(Value::Null)
+                }, 1));
+    
+                globals.define("eprint".to_string(), Value::NativeFn(|_, args| {
+                    match &args[0] {
+                        Value::String(s) => eprintln!("{}", s),
+                        value => eprintln!("{}", value),
+                    }
+    
+                    Ok(Value::Null)
+                }, 1));
+
+                globals.define("__env".to_string(), Value::NativeFn(|interpreter, _| {
+                    Ok(Value::String(format!("{:#?}", interpreter.env.borrow())))
+                }, 0));
+
+                globals.define("__locals".to_string(), Value::NativeFn(|interpreter, _| {
+                    Ok(Value::String(format!("{:#?}", interpreter.locals)))
+                }, 0));
+    
+                globals
+            },
+            locals: HashMap::new(),
             return_value: None,
         }
     }
@@ -70,6 +79,11 @@ impl Interpreter {
         let value = closure(self);
         self.env = prev_env;
         value
+    }
+
+    pub fn extend_locals(&mut self, locals: HashMap<usize, usize>) {
+        println!("extend locals: {locals:#?}");
+        self.locals.extend(locals);
     }
 
     pub fn interpret(&mut self, statements: Vec<Stmt>) -> Result<()> {
@@ -153,11 +167,16 @@ impl Interpreter {
 
     fn evaluate(&mut self, expr: &Expr) -> Result<Value> {
         match expr {
-            Expr::Assignment(name, value) => {
+            Expr::Assignment(expr_id, name, value) => {
                 let value = self.evaluate(value)?;
-                self.env.borrow_mut().assign(name, &value)?;
+                if let Some(distance) = self.locals.get(expr_id) {
+                    self.env.borrow_mut().assign_at(*distance, name, value.clone());
+                } else {
+                    self.globals.assign(name, &value)?;
+                }
+
                 Ok(value)
-            }
+            },
             Expr::Binary(lhs, op, rhs) => self.evaluate_binary(lhs, op, rhs),
             Expr::Block(statements, expr)
                 => self.evaluate_block(statements, expr, true),
@@ -166,11 +185,11 @@ impl Interpreter {
             Expr::Grouping(expr) => self.evaluate(expr),
             Expr::If(condition, then_branch, else_branch) => {
                 self.evaluate_conditional(condition, then_branch, else_branch)
-            }
+            },
             Expr::Literal(literal) => Ok(self.evaluate_literal(literal)),
             Expr::Logical(lhs, op, rhs) => self.evaluate_logical(lhs, op, rhs),
             Expr::Unary(op, expr) => self.evaluate_unary(op, expr),
-            Expr::Variable(name) => self.env.borrow().get(name).map(|value| value.clone()),
+            Expr::Variable(expr_id, name) => self.lookup_variable(name, expr_id),
         }
     }
 
@@ -338,6 +357,20 @@ impl Interpreter {
                 op.location()
             ),
         }
+    }
+
+    fn lookup_variable(&self, name: &Token, expr_id: &usize) -> Result<Value> {
+        println!("lookup: {:#?}", self.locals);
+        if let Some(distance) = self.locals.get(expr_id) {
+            self.env.borrow().get_at(*distance, name)
+        } else {
+            self.globals.values.get(name.lexeme()).map(|val| val.clone())
+        }.ok_or_else(|| report_error(
+            ReportKind::RuntimeError,
+            None,
+            &format!("{} is not defined.", name),
+            name.location()
+        ))
     }
 
     fn is_truthy(&self, value: &Value) -> bool {

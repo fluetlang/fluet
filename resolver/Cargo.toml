@@ -1,16 +1,10 @@
 [package]
-name = "fluet"
+name = "resolver"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-lexer = { path = "../lexer" }
-parser = { path = "../parser" }
 interpreter = { path = "../interpreter" }
-resolver = { path = "../resolver" }
-
-clap = "3.0.13"
-anyhow = "1.0.53"
-colored = "2.0.0"
+common = { path = "../common" }

@@ -15,10 +15,10 @@ use common::{error, token::Token};
 
 use crate::value::Value;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Env {
     parent: Option<Rc<RefCell<Env>>>,
-    values: HashMap<String, Value>,
+    pub values: HashMap<String, Value>,
 }
 
 impl Env {
@@ -36,25 +36,30 @@ impl Env {
         }
     }
 
-    pub fn get(&self, name: &Token) -> Result<Value> {
-        match self.values.get(name.lexeme()) {
-            Some(value) => Ok(value.clone()),
-            None => {
-                if let Some(parent) = &self.parent {
-                    return Ok(parent.borrow().get(name)?);
-                }
+    pub fn get_at(&self, distance: usize, name: &Token) -> Option<Value> {
+        self.ancestor(distance).borrow().values.get(name.lexeme()).map(|val| val.clone())
+    }
 
-                error!(
-                    ReportKind::RuntimeError,
-                    &format!("{} is not defined", name),
-                    name.location()
-                )
-            }
+    fn ancestor(&self, distance: usize) -> Rc<RefCell<Env>> {
+        if distance == 0 {
+            return Rc::new(RefCell::new(self.clone()));
+        }
+
+        match &self.parent {
+            Some(parent) => parent.borrow().ancestor(distance - 1),
+            None => unreachable!("ancestor called with non-zero distance but no parent"),
         }
     }
 
     pub fn define(&mut self, name: String, value: Value) {
         self.values.insert(name, value);
+    }
+
+    pub fn assign_at(&mut self, distance: usize, name: &Token, value: Value) {
+        self.ancestor(distance).borrow_mut().values.insert(
+            name.lexeme().to_string(),
+            value
+        );
     }
 
     pub fn assign(&mut self, name: &Token, value: &Value) -> Result<()> {
@@ -64,14 +69,9 @@ impl Env {
             return Ok(());
         }
 
-        if let Some(parent) = &self.parent {
-            parent.borrow_mut().assign(name, value)?;
-            return Ok(());
-        }
-
         error!(
             ReportKind::RuntimeError,
-            &format!("{} is not defined", name),
+            &format!("{} is not defined.", name),
             name.location()
         )
     }

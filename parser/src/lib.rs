@@ -9,10 +9,17 @@
 #[macro_use]
 extern crate common;
 
+use std::sync::atomic::{AtomicUsize, Ordering};
+
 use common::errors::{report_error, FluetError, ReportKind, Result};
 use common::expr::Expr;
 use common::stmt::Stmt;
 use common::token::{Literal, Token, TokenType};
+
+fn next_expr_id() -> usize {
+    static mut ID: AtomicUsize = AtomicUsize::new(0);
+    unsafe { ID.fetch_add(1, Ordering::AcqRel) }
+}
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -207,8 +214,12 @@ impl Parser {
             let equals = self.previous();
             let value = self.assignment()?;
 
-            if let Expr::Variable(name) = lhs {
-                return Ok(Expr::Assignment(name, Box::new(value)));
+            if let Expr::Variable(_, name) = lhs {
+                return Ok(Expr::Assignment(
+                    next_expr_id(),
+                    name,
+                    Box::new(value)
+                ));
             }
 
             // Report error but don't return error
@@ -380,7 +391,7 @@ impl Parser {
         }
 
         if self.match_token(TokenType::Identifier) {
-            return Ok(Expr::Variable(self.previous()));
+            return Ok(Expr::Variable(next_expr_id(), self.previous()));
         }
 
         if self.match_token(TokenType::LeftParen) {
